@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0ce436dd656e6a4672f4d152c710b93a24398a6a0107796578f031a728501306",
+  "pageVersion": "sha256:a75c69254d9301036f645e9051b9819dbc6c5b854bf7417e59c1436fe34a03ce",
   "claims": [
     {
       "id": "claim_31a05d6469ea495ebed1cdff1e3c3f8a",
@@ -35,8 +35,8 @@
           "version": "repo-lines-v1:sha256:a7fbd80411acecdd918b88984171870f95e8f17a6b404be8064ba76ba6764977:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTdmYmQ4MDQxMWFjZWNkZDkxOGI4ODk4NDE3MTg3MGY5NWU4ZjE3YTZiNDA0YmU4MDY0YmE3NmJhNjc2NDk3NyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTdmYmQ4MDQxMWFjZWNkZDkxOGI4ODk4NDE3MTg3MGY5NWU4ZjE3YTZiNDA0YmU4MDY0YmE3NmJhNjc2NDk3NyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDhhN2M2ZTg2ZDY0MzYxMjdjODdmOWYxNzhjMDllMTE3YmE5NmEwMzVlMmEzNTRkZGJkN2ViMDkzM2RkOTg3NyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzgzNzQ1ZTU1YTIzYmI0MzZjYTUxMGFiMTgwNGQyODMwMjhhNTJlNzc5MjE5YmNlNzAyODRkOWY3YjEwMDcxMCJ9"
         },
         {
-          "resource": "repo://libs/core/pyproject.toml#L71-L71",
-          "version": "repo-lines-v1:sha256:aa6362a66ded41aecd8b2408bd09c55c61ed003a1855f796ea221c43b5e4c2a3:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYWE2MzYyYTY2ZGVkNDFhZWNkOGIyNDA4YmQwOWM1NWM2MWVkMDAzYTE4NTVmNzk2ZWEyMjFjNDNiNWU0YzJhMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYWE2MzYyYTY2ZGVkNDFhZWNkOGIyNDA4YmQwOWM1NWM2MWVkMDAzYTE4NTVmNzk2ZWEyMjFjNDNiNWU0YzJhMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzdmYTcwYWI1NjdmNTc2MjJkNGQ5ODE2MzE4ZWZmOWMxOWMwYmZkZDI0NTliNDI4ZDQxZGM4MTRkM2VjZWY3NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjY5Njk3MGIzZDgxMTUxMTMyMTVhMTA0MzE0OGM4Y2M2OTFlNDlkNTM2YjlhNzM1NjhjNGFiMzM2NDdkNmQzNyJ9"
+          "resource": "repo://libs/core/pyproject.toml#L62-L79",
+          "version": "repo-lines-v1:sha256:7939e01ddd13428d31aa5d35879f58412ec1662a93e3a6dcde301f4e3da2af03:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiYTI4NzYxMWUwMGFkMjQ1YzRiZDQ0NjIyOWQ3OGYzMDJlYmEwYWNlOTVlN2M2NmM1NGE0MzIxY2U4NjM2YWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5NDE2ZTA5Zjc4YmEzMTZjMDMyNTY4MjEzYjg1NWVlNzU2ZTQxNTY1ZDkxOGYwOTUxOWM4MWZkNjIwZjQwNjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ4YzY1M2ZjY2MzYzc0ZTQ4ZTA0NzQxN2M5Yzc4YzE3OTBlNDUwMGY1ZTNhNDM5NGM1MGJjNjU0YTc5YjVjNzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmN2IxNmE3ZGUxZGNmNDU2ZDE3YThhYjFlOTZiZDMzMWVkOWEyZjEyNGUyYTIzMWVkNTdhMWU1NjI5NjVlNjIifQ"
         }
       ]
     },
@@ -192,11 +192,11 @@
     },
     {
       "id": "claim_2791739997524c29af5e1e543f8ee1d2",
-      "statement": "pytest, pytest-asyncio, pytest-mock, syrupy, pytest-socket, pytest-xdist, freezegun, responses, blockbuster, pytest-benchmark, and pytest-codspeed are declared in pyproject.toml [dependency-groups] test section with version constraints.",
+      "statement": "pytest, pytest-asyncio, pytest-mock, syrupy, pytest-socket, pytest-xdist, freezegun, responses, blockbuster, pytest-benchmark, pytest-codspeed, pytest-watcher, and langchain-tests are declared in pyproject.toml [dependency-groups] test section with version constraints.",
       "evidence": [
         {
           "resource": "repo://libs/core/pyproject.toml#L62-L79",
-          "version": "repo-lines-v1:sha256:9a8b914d6c65b2a025762da865f078918fc42e6690877a89a5982641c3b2fe57:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiYTI4NzYxMWUwMGFkMjQ1YzRiZDQ0NjIyOWQ3OGYzMDJlYmEwYWNlOTVlN2M2NmM1NGE0MzIxY2U4NjM2YWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5NDE2ZTA5Zjc4YmEzMTZjMDMyNTY4MjEzYjg1NWVlNzU2ZTQxNTY1ZDkxOGYwOTUxOWM4MWZkNjIwZjQwNjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ4YzY1M2ZjY2MzYzc0ZTQ4ZTA0NzQxN2M5Yzc4YzE3OTBlNDUwMGY1ZTNhNDM5NGM1MGJjNjU0YTc5YjVjNzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmN2IxNmE3ZGUxZGNmNDU2ZDE3YThhYjFlOTZiZDMzMWVkOWEyZjEyNGUyYTIzMWVkNTdhMWU1NjI5NjVlNjIifQ"
+          "version": "repo-lines-v1:sha256:7939e01ddd13428d31aa5d35879f58412ec1662a93e3a6dcde301f4e3da2af03:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiYTI4NzYxMWUwMGFkMjQ1YzRiZDQ0NjIyOWQ3OGYzMDJlYmEwYWNlOTVlN2M2NmM1NGE0MzIxY2U4NjM2YWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5NDE2ZTA5Zjc4YmEzMTZjMDMyNTY4MjEzYjg1NWVlNzU2ZTQxNTY1ZDkxOGYwOTUxOWM4MWZkNjIwZjQwNjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ4YzY1M2ZjY2MzYzc0ZTQ4ZTA0NzQxN2M5Yzc4YzE3OTBlNDUwMGY1ZTNhNDM5NGM1MGJjNjU0YTc5YjVjNzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmN2IxNmE3ZGUxZGNmNDU2ZDE3YThhYjFlOTZiZDMzMWVkOWEyZjEyNGUyYTIzMWVkNTdhMWU1NjI5NjVlNjIifQ"
         }
       ]
     },
@@ -213,6 +213,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.0",
-    "at": "2026-10-25T08:23:03.589Z"
+    "at": "2026-10-28T08:19:50.216Z"
   }
 }

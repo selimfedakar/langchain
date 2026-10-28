@@ -5,7 +5,7 @@ description: "Message types and structures—the data contract between applicati
 tags: ["messages", "chat-models", "tool-calling", "multimodal", "streaming"]
 verified:
   - by: openwiki/0.5.0
-    at: 2026-10-25T08:23:03.589Z
+    at: 2026-10-28T08:19:50.216Z
 sources:
   - id: openwiki-source-0f6ea1dd09fb4675ff4112b1
     resource: repo://libs/core/langchain_core/messages/__init__.py

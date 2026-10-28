@@ -1,10 +1,11 @@
 ---
-type: "Reference"
-title: "Create an LLM run"
-openwiki_generated: true
+type: "Architecture"
+title: "Callbacks: Observability and Event Streaming"
+description: "Event-driven callback system for monitoring LLM execution, streaming tokens, tracing with LangSmith, and custom instrumentation through handler interfaces and manager patterns."
+tags: ["callbacks", "observability", "streaming", "event-driven", "tracing", "instrumentation"]
 verified:
   - by: openwiki/0.5.0
-    at: 2026-10-25T08:23:03.589Z
+    at: 2026-10-28T08:19:50.216Z
 sources:
   - id: openwiki-source-96c73d2c05223b0b46abdbe9
     resource: repo://libs/core/langchain_core/callbacks/__init__.py
@@ -20,47 +21,52 @@ sources:
     resource: repo://libs/core/langchain_core/tracers/context.py
   - id: openwiki-source-79eb321fa44e679f85ad5c48
     resource: repo://libs/core/langchain_core/tracers/langchain.py
-generated: { by: "openwiki/0.5.0", at: "2026-10-25T08:23:03.589Z" }
+generated: { by: "openwiki/0.5.0", at: "2026-10-28T08:19:50.216Z" }
 ---
-
 
 ## Overview
 
-LangChain's callback system is an event-driven instrumentation layer that enables monitoring, tracing, and debugging of LLM applications. Callbacks fire at key points in the execution lifecycle of LLMs, chains, tools, and retrievers, providing access to inputs, outputs, and errors for observability and custom logic.
+LangChain's callback system is an event-driven instrumentation layer that fires at key points in the execution lifecycle of LLMs, chains, tools, and retrievers. It enables observability, token streaming, custom instrumentation, and integration with external tracing systems like LangSmith.
 
-The callback system consists of:
+The system consists of three layers:
 
-- **Event handlers** that respond to execution events
-- **Manager patterns** that coordinate handlers and propagate context (tags, metadata, run IDs)
-- **Built-in integrations** with LangSmith for production tracing
-- **Custom event support** for application-specific instrumentation
+- **Handlers** (`BaseCallbackHandler`, `AsyncCallbackHandler`) that respond to specific events
+- **Managers** (`CallbackManager`, `AsyncCallbackManager`) that coordinate handler dispatch and propagate context
+- **Run managers** (e.g., `CallbackManagerForLLMRun`) that bind managers to specific executions and enable parent-child hierarchies
 
 ## Core Concepts
 
-### Event Lifecycle and Callbacks
+### Event Lifecycle
 
-Every callable component in LangChain (LLM, chain, tool, retriever) generates a sequence of callback events:
+Every component type in LangChain fires a standard sequence of events:
 
-| Component | Start Event | End Event | Error Event | Streaming Event |
-|-----------|------------|----------|------------|-----------------|
-| **LLM** (text) | `on_llm_start` | `on_llm_end` | `on_llm_error` | `on_llm_new_token` |
-| **Chat Model** | `on_chat_model_start` | `on_llm_end` | `on_llm_error` | `on_llm_new_token` |
+| Component | Start | End | Error | Streaming |
+|-----------|-------|-----|-------|-----------|
+| **LLM** (non-chat) | `on_llm_start` | `on_llm_end` | `on_llm_error` | `on_llm_new_token` |
+| **Chat Model** | `on_chat_model_start` | `on_llm_end` | `on_llm_error` | `on_llm_new_token`, `on_stream_event` |
 | **Chain** | `on_chain_start` | `on_chain_end` | `on_chain_error` | — |
 | **Tool** | `on_tool_start` | `on_tool_end` | `on_tool_error` | — |
 | **Retriever** | `on_retriever_start` | `on_retriever_end` | `on_retriever_error` | — |
 | **Agent** | `on_chain_start` | `on_chain_end` | `on_chain_error` | `on_agent_action`, `on_agent_finish` |
 
-### BaseCallbackHandler
+Each event carries common context parameters:
 
-The `BaseCallbackHandler` is the core interface for implementing custom callbacks. It defines optional methods for each event type, organized into mixins by component category.
+- **`run_id`** (UUID): Unique identifier for the current execution
+- **`parent_run_id`** (UUID | None): ID of the parent run in nested executions
+- **`tags`** (list[str] | None): Tags propagated from parent for filtering and metadata correlation
+- **`metadata`** (dict[str, Any] | None): Custom key-value metadata propagated through the execution tree
+
+### Handler Interface
+
+`BaseCallbackHandler` defines the core callback interface through mixins, with optional methods that implementations override:
 
 ```python
 from langchain_core.callbacks import BaseCallbackHandler
 from uuid import UUID
 from typing import Any
 
-class MyCallbackHandler(BaseCallbackHandler):
-    """Custom callback handler."""
+class MyHandler(BaseCallbackHandler):
+    """Custom callback handler for observability."""
     
     def on_llm_start(
         self,
@@ -73,89 +79,115 @@ class MyCallbackHandler(BaseCallbackHandler):
         metadata: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
-        """Called when an LLM starts."""
-        print(f"LLM starting with prompt: {prompts[0][:50]}...")
+        """Called when an LLM starts execution."""
+        print(f"LLM invoked with {len(prompts)} prompt(s)")
     
     def on_llm_end(self, response, **kwargs: Any) -> None:
-        """Called when an LLM finishes."""
-        print(f"LLM finished with response tokens: {len(response.generations[0])}")
+        """Called when an LLM finishes successfully."""
+        print(f"LLM produced {len(response.generations[0])} completions")
     
     def on_llm_error(self, error: BaseException, **kwargs: Any) -> None:
-        """Called when an LLM errors."""
-        print(f"LLM error: {type(error).__name__}")
+        """Called when an LLM raises an error."""
+        print(f"LLM failed: {type(error).__name__}")
 ```
 
-**Key handler properties:**
+**Handler properties:**
 
-- `raise_error` (bool, default=False): Whether to raise exceptions from the handler
-- `run_inline` (bool, default=False): Whether to run the handler synchronously in the calling thread (vs. thread pool for async handlers)
-- `ignore_*` properties: Filter callbacks for specific component types (e.g., `ignore_llm`, `ignore_chain`)
+- **`raise_error`** (bool, default False): Whether to raise exceptions from callback methods
+- **`run_inline`** (bool, default False): Whether to run async handlers synchronously in the calling thread vs. a thread pool executor
+- **`ignore_*` properties** (e.g., `ignore_llm`, `ignore_chain`): Allow handlers to filter which event types they receive
 
-### Callback Event Parameters
+### Async Handlers
 
-All callback events receive common parameters:
-
-- **`run_id`** (UUID): Unique identifier for the current execution
-- **`parent_run_id`** (UUID | None): ID of the parent run in a nested execution tree
-- **`tags`** (list[str] | None): Tags propagated from parent runs for filtering and metadata
-- **`metadata`** (dict[str, Any] | None): Custom metadata propagated through the execution tree
-
-Example with metadata:
+`AsyncCallbackHandler` extends `BaseCallbackHandler` with async method signatures to support non-blocking execution in async contexts:
 
 ```python
-from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.callbacks import AsyncCallbackHandler
 
-class DebugHandler(BaseCallbackHandler):
-    def on_chain_start(self, serialized, inputs, **kwargs):
-        metadata = kwargs.get("metadata", {})
-        print(f"Chain: {serialized.get('name')}")
-        print(f"Metadata: {metadata}")
-        print(f"Tags: {kwargs.get('tags', [])}")
+class AsyncMyHandler(AsyncCallbackHandler):
+    async def on_llm_start(
+        self,
+        serialized: dict[str, Any],
+        prompts: list[str],
+        *,
+        run_id: UUID,
+        **kwargs: Any,
+    ) -> None:
+        """Async handler for LLM start."""
+        await log_to_database(serialized, prompts)
+    
+    async def on_llm_end(self, response, **kwargs: Any) -> None:
+        """Async handler for LLM end."""
+        await update_metrics(response)
 ```
 
-## Callback Manager Patterns
+Handlers can mix sync and async methods in the same class for compatibility with both sync and async calling contexts.
 
-Callback managers coordinate handlers and manage context propagation. They enforce the start/end/error lifecycle and return specialized run managers for nested callbacks.
+### Chat Model Fallback Pattern
 
-### CallbackManager (Synchronous)
+When a handler's `on_chat_model_start` raises `NotImplementedError`, the callback system automatically falls back to `on_llm_start` with message lists converted to prompt strings. This enables handlers to support chat models through the legacy LLM interface:
 
-The `CallbackManager` is the synchronous coordinator. It dispatches events to all registered handlers and returns specialized run managers for different component types.
+```python
+class LegacyHandler(BaseCallbackHandler):
+    def on_chat_model_start(
+        self,
+        serialized: dict[str, Any],
+        messages: list[list[BaseMessage]],
+        **kwargs: Any,
+    ) -> None:
+        # Raising NotImplementedError triggers fallback to on_llm_start
+        raise NotImplementedError
+    
+    def on_llm_start(self, serialized, prompts, **kwargs: Any) -> None:
+        # This will be called instead for chat models
+        print(f"Chat model called with prompts: {prompts}")
+```
+
+**Important:** When implementing `on_chat_model_start`, always declare `serialized` and `messages` as explicit positional arguments (not `*args`), as documented in the method signature. This is required for the fallback mechanism to work correctly.
+
+## Callback Managers
+
+Managers coordinate handler dispatch across potentially multiple handlers and manage context propagation (tags, metadata, run IDs) through execution hierarchies.
+
+### Synchronous Manager: CallbackManager
+
+`CallbackManager` is the synchronous coordinator. It dispatches events to all registered handlers and returns specialized run managers bound to individual component invocations:
 
 ```python
 from langchain_core.callbacks import BaseCallbackHandler, CallbackManager
-from langchain_core.llms import LLM
+from uuid import UUID
 
-handler = BaseCallbackHandler()
+handler = MyHandler()
 manager = CallbackManager(handlers=[handler])
 
-# Create an LLM run
+# Start an LLM execution
 llm_managers = manager.on_llm_start(
     serialized={"name": "my-llm"},
     prompts=["What is AI?"],
-    tags=["user-query"]
+    tags=["user-query"],
+    metadata={"user_id": "123"}
 )
 
-# Each returned manager tracks that specific LLM run
+# Each returned manager tracks one LLM run
 for llm_manager in llm_managers:
-    # ... LLM execution ...
+    # ... invoke LLM ...
     llm_manager.on_llm_end(response)
 ```
 
-**Return types from `CallbackManager` start methods:**
+**Start method return types:**
 
 - `on_llm_start()` → `list[CallbackManagerForLLMRun]` (one per prompt)
 - `on_chat_model_start()` → `list[CallbackManagerForLLMRun]` (one per message list)
-- `on_chain_start()` → `CallbackManagerForChainRun` (single manager for chain)
-- `on_tool_start()` → `CallbackManagerForToolRun` (single manager for tool)
-- `on_retriever_start()` → `CallbackManagerForRetrieverRun` (single manager for retriever)
+- `on_chain_start()` → `CallbackManagerForChainRun` (single manager)
+- `on_tool_start()` → `CallbackManagerForToolRun` (single manager)
+- `on_retriever_start()` → `CallbackManagerForRetrieverRun` (single manager)
 
-### AsyncCallbackManager
+### Asynchronous Manager: AsyncCallbackManager
 
-The `AsyncCallbackManager` is the async variant. It dispatches events concurrently to multiple handlers and returns async run managers.
+`AsyncCallbackManager` is the async variant. It dispatches events to handlers concurrently and returns async run managers:
 
 ```python
 from langchain_core.callbacks import AsyncCallbackManager
-import asyncio
 
 async def main():
     manager = AsyncCallbackManager(handlers=[handler])
@@ -170,227 +202,117 @@ async def main():
     for mgr in llm_managers:
         # ... async LLM execution ...
         await mgr.on_llm_end(response)
-
-asyncio.run(main())
 ```
 
-Async handlers with `run_inline=False` are scheduled concurrently; those with `run_inline=True` run sequentially.
+**Concurrency:** Handlers with `run_inline=False` are scheduled concurrently via `asyncio.gather`; those with `run_inline=True` run sequentially.
 
-### Run Managers
+### Event Dispatch
 
-Run managers are bound to a specific execution run (LLM call, chain invocation, etc.). They extend their corresponding handlers and propagate context to child runs.
+Two internal functions handle dispatch:
 
-**ParentRunManager** (base for chains, tools, retrievers):
+- **`handle_event`** (sync): Dispatches events to handlers, collects coroutines from async handlers invoked synchronously, and executes them in a thread pool to avoid blocking the event loop.
+
+- **`ahandle_event`** (async): Dispatches to async and sync handlers concurrently, running inline handlers sequentially before concurrent ones.
+
+Both functions respect `ignore_*` properties to filter handlers for specific event types.
+
+## Run Managers and Hierarchy
+
+Run managers bind a manager to a specific execution run, enabling tracking of individual invocations and parent-child relationships.
+
+### Base Run Manager
+
+`BaseRunManager` stores the execution context:
 
 ```python
-class CallbackManagerForChainRun(ParentRunManager, ChainManagerMixin):
-    def get_child(self, tag: str | None = None) -> CallbackManager:
-        """Create a child callback manager inheriting tags and handlers."""
-        # Returns a CallbackManager with inheritable_handlers and inheritable_tags
+class BaseRunManager:
+    run_id: UUID                              # Unique ID for this run
+    handlers: list[BaseCallbackHandler]       # All handlers for this run
+    inheritable_handlers: list[...]           # Handlers to pass to children
+    parent_run_id: UUID | None                # ID of parent run
+    tags: list[str]                           # Non-inheritable tags
+    inheritable_tags: list[str]               # Tags for children
+    metadata: dict[str, Any]                  # Non-inheritable metadata
+    inheritable_metadata: dict[str, Any]      # Metadata for children
 ```
 
-**Run manager hierarchy:**
+### Parent Run Managers and Child Context
 
-```
-BaseRunManager
-├── RunManager (sync)
-│   └── ParentRunManager
-│       ├── CallbackManagerForChainRun
-│       ├── CallbackManagerForToolRun
-│       └── CallbackManagerForRetrieverRun
-└── AsyncRunManager (async)
-    └── AsyncParentRunManager
-        ├── AsyncCallbackManagerForChainRun
-        ├── AsyncCallbackManagerForToolRun
-        └── AsyncCallbackManagerForRetrieverRun
-```
-
-## Handler and Context Composition
-
-### Inheritable Handlers and Tags
-
-Context is propagated through nested execution via "inheritable" handlers and tags:
+`ParentRunManager` (and its async variant `AsyncParentRunManager`) support the creation of child managers that inherit context:
 
 ```python
-manager = CallbackManager(
-    handlers=[debug_handler],           # Non-inheritable (this run only)
-    inheritable_handlers=[tracer],      # Inherited by child runs
-    tags=["debug"],                     # Non-inheritable tags
-    inheritable_tags=["user:alice"],    # Inherited tags
-    metadata={"version": "1.0"}         # Non-inheritable metadata
-)
+# Inside a chain execution
+parent_manager: CallbackManagerForChainRun = ...
 
-# When on_chain_start is called, it returns a CallbackManagerForChainRun
-chain_manager = manager.on_chain_start(...)
+# Create a child manager for a nested tool invocation
+child_manager = parent_manager.get_child(tag="my-tool")
 
-# The child manager created by chain_manager.get_child() inherits:
-child = chain_manager.get_child(tag="step1")
-# child.handlers = [tracer]           (inheritable only)
-# child.inheritable_handlers = [tracer]
-# child.inheritable_tags = ["user:alice", "step1"]
+# Child inherits parent's inheritable_handlers, inheritable_tags, and inheritable_metadata
+tool.invoke(input, {"callbacks": child_manager})
 ```
 
-### Handler Filtering
+The hierarchy enables:
+- Automatic propagation of tracing context through nested executions
+- Parent-child relationships in traces
+- Logical grouping of related operations
 
-Handlers can ignore specific event types via boolean properties:
+### Specialized Run Managers
 
-```python
-class SelectiveHandler(BaseCallbackHandler):
-    @property
-    def ignore_llm(self) -> bool:
-        return True  # Skip all LLM events
-    
-    @property
-    def ignore_chain(self) -> bool:
-        return False  # Process chain events
-    
-    def on_chain_start(self, serialized, inputs, **kwargs):
-        print("Chain event received")
-    
-    def on_llm_start(self, serialized, prompts, **kwargs):
-        # Never called due to ignore_llm=True
-        pass
-```
+Each component type has a specialized run manager:
 
-Available ignore properties: `ignore_llm`, `ignore_chat_model`, `ignore_chain`, `ignore_agent`, `ignore_retriever`, `ignore_retry`, `ignore_custom_event`.
+- `CallbackManagerForLLMRun`: For LLM invocations; supports token streaming via `on_llm_new_token`
+- `CallbackManagerForChainRun`: For chains; supports `get_child()` for nested runs
+- `CallbackManagerForToolRun`: For tools
+- `CallbackManagerForRetrieverRun`: For retrievers
 
-### Merging Callback Managers
+## Streaming Support
 
-Managers can be merged to combine handlers and tags:
+Token-level streaming is supported for LLMs through the `on_llm_new_token` callback:
 
 ```python
-from langchain_core.callbacks.manager import CallbackManager
+class StreamingHandler(BaseCallbackHandler):
+    def on_llm_new_token(
+        self,
+        token: str | list[str | dict[str, Any]],
+        *,
+        chunk: GenerationChunk | ChatGenerationChunk | None = None,
+        run_id: UUID,
+        **kwargs: Any,
+    ) -> None:
+        """Called for each token generated during streaming."""
+        print(f"Token: {token}")
 
-manager1 = CallbackManager(handlers=[handler1], tags=["tag1"])
-manager2 = CallbackManager(handlers=[handler2], tags=["tag2"])
-
-merged = manager1.merge(manager2)
-# merged.handlers = [handler1, handler2]
-# merged.tags = ["tag1", "tag2"]  (deduplicated)
-```
-
-## Built-in Handlers
-
-### StdOutCallbackHandler
-
-Prints chain and agent execution to stdout:
-
-```python
-from langchain_core.callbacks import StdOutCallbackHandler
-
-handler = StdOutCallbackHandler(color="green")
-# Prints formatted output for chain start/end and agent actions
-```
-
-### StreamingStdOutCallbackHandler
-
-Prints LLM tokens to stdout as they arrive (streaming):
-
-```python
+# Use with streaming LLMs
 from langchain_core.callbacks import StreamingStdOutCallbackHandler
 
-handler = StreamingStdOutCallbackHandler()
-# Each token from on_llm_new_token is printed immediately
+llm.invoke(prompt, {"callbacks": [StreamingStdOutCallbackHandler()]})
 ```
 
-### FileCallbackHandler
+The `chunk` parameter provides detailed information about the generated output when available.
 
-Logs events to a file:
+Protocol-level event streaming (v3) is supported through `on_stream_event` for structured chat model events:
 
 ```python
-from langchain_core.callbacks import FileCallbackHandler
-
-handler = FileCallbackHandler(filename="trace.log")
+class EventStreamHandler(BaseCallbackHandler):
+    def on_stream_event(
+        self,
+        event: MessagesData,  # Protocol event
+        *,
+        run_id: UUID,
+        **kwargs: Any,
+    ) -> None:
+        """Called for each protocol event (message-start, content-block-delta, etc.)."""
+        print(f"Event: {event}")
 ```
-
-### UsageMetadataCallbackHandler
-
-Tracks token usage across LLM calls:
-
-```python
-from langchain_core.callbacks import UsageMetadataCallbackHandler, get_usage_metadata_callback
-
-with get_usage_metadata_callback() as callback:
-    result = llm.invoke("Hello", config={"callbacks": [callback]})
-    print(callback.usage_metadata)
-    # {"gpt-4": UsageMetadata(input_tokens=2, output_tokens=10)}
-```
-
-## LangSmith Integration
-
-LangChain's callback system integrates with LangSmith for production tracing, debugging, and evaluation.
-
-### Automatic Tracing
-
-Enable automatic tracing to LangSmith via environment variables:
-
-```bash
-export LANGCHAIN_TRACING_V2=true
-export LANGCHAIN_API_KEY=<your_langsmith_api_key>
-export LANGCHAIN_PROJECT=my-project
-```
-
-With these set, a `LangChainTracer` callback handler is automatically added to all executions, sending traces to the configured LangSmith project.
-
-### Manual LangChainTracer
-
-For explicit control, use `tracing_v2_enabled()`:
-
-```python
-from langchain_core.tracers.context import tracing_v2_enabled
-from langchain_core.runnables import RunnablePassthrough
-
-with tracing_v2_enabled(project_name="my-project") as tracer:
-    result = chain.invoke("input")
-    run_url = tracer.get_run_url()
-    print(f"View trace: {run_url}")
-```
-
-### Collecting Runs Locally
-
-Use `collect_runs()` to gather traces in memory for testing:
-
-```python
-from langchain_core.tracers.context import collect_runs
-
-with collect_runs() as collector:
-    result = chain.invoke("input")
-    
-    for run in collector.traced_runs:
-        print(f"Run: {run.name}, Inputs: {run.inputs}")
-```
-
-### LangChainTracer Configuration
-
-The `LangChainTracer` accepts:
-
-- **`project_name`**: LangSmith project to send traces to
-- **`example_id`**: Associate traces with a dataset example
-- **`tags`**: Tags to apply to all traced runs
-- **`metadata`**: Metadata for run filtering and querying
-- **`address`**: Agent address for agent addressing (beta feature)
 
 ## Custom Events
 
-Applications can dispatch custom events for application-specific instrumentation:
+Applications can emit custom instrumentation events using `dispatch_custom_event` (sync) and `adispatch_custom_event` (async). Handlers implement `on_custom_event` to react:
 
 ```python
-from langchain_core.callbacks.manager import dispatch_custom_event
-from langchain_core.runnables.config import RunnableConfig
+from langchain_core.callbacks import dispatch_custom_event
+from langchain_core.callbacks import BaseCallbackHandler
 
-@runnables.RunnableLambda
-def my_function(x: int, config: RunnableConfig):
-    dispatch_custom_event(
-        "user_action",
-        {"action": "login", "user_id": 123},
-        config=config
-    )
-    return x * 2
-```
-
-Custom event handlers implement `on_custom_event`:
-
-```python
 class CustomEventHandler(BaseCallbackHandler):
     def on_custom_event(
         self,
@@ -402,314 +324,161 @@ class CustomEventHandler(BaseCallbackHandler):
         metadata: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
-        print(f"Event {name}: {data}")
+        """Handle a custom application event."""
+        print(f"Custom event '{name}': {data}")
+
+# Dispatch from a RunnableLambda or tool
+def my_tool(input: str, config: RunnableConfig):
+    # ... do work ...
+    dispatch_custom_event("my_event", {"result": "success"}, config=config)
+    return output
 ```
 
-Dispatch with async:
+Custom events must be dispatched from within an active run (e.g., inside a tool or RunnableLambda) and require a parent run ID context.
+
+## LangSmith Integration
+
+LangChain integrates with LangSmith for production tracing through the `LangChainTracer` callback handler:
+
+### Automatic Activation
+
+Tracing is automatically activated when `LANGCHAIN_TRACING_V2=true` environment variable is set:
 
 ```python
-from langchain_core.callbacks.manager import adispatch_custom_event
+import os
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
 
-await adispatch_custom_event("async_event", {"data": "value"}, config=config)
+# Traces are now sent to LangSmith automatically
+chain.invoke({"input": "test"})
 ```
 
-## Configuring Callbacks
+### Explicit Activation
 
-### Via RunnableConfig
-
-Runnables accept callbacks in their config:
+Use the `tracing_v2_enabled()` context manager for explicit control:
 
 ```python
-from langchain_core.runnables import RunnableLambda
+from langchain_core.tracers.context import tracing_v2_enabled
 
-chain = RunnableLambda(lambda x: x.upper())
-
-result = chain.invoke(
-    "hello",
-    config={
-        "callbacks": [handler1, handler2],
-        "tags": ["production"],
-        "metadata": {"user_id": "alice"}
-    }
-)
+with tracing_v2_enabled(project_name="my-project") as tracer:
+    result = chain.invoke({"input": "test"})
+    run_url = tracer.get_run_url()  # Get the LangSmith trace URL
 ```
 
-### CallbackManager.configure()
+### Grouped Tracing
 
-Use `configure()` for flexible callback setup with environment variable integration:
+Use `trace_as_chain_group` and `atrace_as_chain_group` to group multiple independent operations as children of a parent run:
+
+```python
+from langchain_core.callbacks.manager import trace_as_chain_group
+
+with trace_as_chain_group("my_workflow", inputs={"task": "demo"}) as manager:
+    result1 = llm.invoke(prompt1, {"callbacks": manager})
+    result2 = tool.invoke(input2, {"callbacks": manager})
+    # Both runs appear as children of the same trace
+```
+
+## Built-in Handlers
+
+LangChain provides several production-ready handlers:
+
+### StdOutCallbackHandler
+
+Prints chain execution to stdout:
+
+```python
+from langchain_core.callbacks import StdOutCallbackHandler
+
+handler = StdOutCallbackHandler()
+chain.invoke(input, {"callbacks": [handler]})
+# Outputs: > Entering new ... chain...
+#          > Finished chain.
+```
+
+### StreamingStdOutCallbackHandler
+
+Streams individual tokens to stdout as they are generated:
+
+```python
+from langchain_core.callbacks import StreamingStdOutCallbackHandler
+
+llm.invoke(prompt, {"callbacks": [StreamingStdOutCallbackHandler()]})
+# Outputs tokens in real-time
+```
+
+### UsageMetadataCallbackHandler
+
+Tracks token usage (input/output tokens, cost) from LLM responses:
+
+```python
+from langchain_core.callbacks import UsageMetadataCallbackHandler
+
+handler = UsageMetadataCallbackHandler()
+llm.invoke(prompt, {"callbacks": [handler]})
+print(handler.get_total_token_count())  # Total tokens used
+print(handler.get_total_cost())          # Estimated cost
+```
+
+### FileCallbackHandler
+
+Logs execution traces to a file.
+
+## Manager Configuration
+
+The `CallbackManager.configure()` class method aggregates callbacks from multiple sources with environment variable integration:
 
 ```python
 from langchain_core.callbacks import CallbackManager
 
 manager = CallbackManager.configure(
-    inheritable_callbacks=[tracer],
-    local_callbacks=[debug_handler],
-    inheritable_tags=["system"],
-    local_tags=["this-run"],
-    inheritable_metadata={"version": "1.0"},
-    verbose=True
+    inheritable_callbacks=[handler1],        # Passed to child runs
+    local_callbacks=[handler2],              # Not passed to children
+    inheritable_tags=["production"],        # Tags for child runs
+    local_tags=["debug"],                   # Tags for this run only
+    inheritable_metadata={"project": "x"},  # Metadata for child runs
+    local_metadata={"request_id": "123"},   # Metadata for this run only
+    verbose=True,                           # Enable verbose mode
 )
 ```
 
-When `verbose=True`, a `StdOutCallbackHandler` is automatically added for chain execution tracing.
+This method is typically called by runnables and chains to set up callbacks with proper inheritance semantics.
 
-### Context Variables
+## Testing and Debugging
 
-Callbacks can access context via the implicit `RunnableConfig`:
+### Run Collection
 
-```python
-from langchain_core.runnables import RunnableLambda, RunnableConfig
-
-@RunnableLambda
-async def fetch_context(x: str, config: RunnableConfig):
-    callbacks = config.get("callbacks")
-    run_id = config.get("run_id")
-    tags = config.get("tags", [])
-    metadata = config.get("metadata", {})
-    return x.upper()
-```
-
-## Event Dispatch Mechanics
-
-### Synchronous Dispatch
-
-The `handle_event` function dispatches synchronous and async handlers:
-
-```
-handle_event(handlers, "on_llm_start", "ignore_llm", ...)
-├─ For each handler not matching ignore condition:
-│  ├─ Call handler.on_llm_start(...) 
-│  ├─ If result is a coroutine:
-│  │  └─ Collect for async execution
-│  └─ If exception and handler.raise_error:
-│     └─ Re-raise
-└─ If async coroutines collected:
-   └─ Execute in thread pool (avoid blocking event loop)
-```
-
-Async handlers invoked from sync code run in a new event loop via `ThreadPoolExecutor`.
-
-### Asynchronous Dispatch
-
-The `ahandle_event` function handles async dispatch:
-
-```
-ahandle_event(handlers, "on_llm_start", "ignore_llm", ...)
-├─ Inline handlers (run_inline=True):
-│  └─ await sequentially
-└─ Non-inline handlers (run_inline=False):
-   └─ asyncio.gather() concurrently
-```
-
-This ensures inline handlers maintain strict ordering while non-inline handlers execute concurrently for performance.
-
-### Fallback for Chat Models
-
-When a handler doesn't implement `on_chat_model_start`, the system falls back to `on_llm_start` with prompts converted from messages:
-
-```python
-def on_chat_model_start(self, serialized, messages, **kwargs):
-    raise NotImplementedError  # Triggers fallback to on_llm_start
-```
-
-## Tracing Nested Executions
-
-### Automatic Parent-Child Tracking
-
-Run managers track parent-child relationships:
-
-```python
-# Top-level execution
-chain_manager = callback_manager.on_chain_start(...)
-
-# chain_manager.run_id = <uuid-a>
-# chain_manager.parent_run_id = None (or parent's UUID)
-
-# Child execution
-child_manager = chain_manager.get_child(tag="step1")
-
-# Callbacks see: parent_run_id=<uuid-a>
-tool_manager = child_manager.on_tool_start(...)
-# tool_manager.parent_run_id = <uuid-a>
-```
-
-### Grouping Runs: trace_as_chain_group
-
-`trace_as_chain_group` context manager groups unrelated calls as a single logical chain:
-
-```python
-from langchain_core.callbacks.manager import trace_as_chain_group
-
-with trace_as_chain_group(
-    "multi_step_process",
-    inputs={"start": "value"},
-    tags=["important"],
-) as group_manager:
-    result1 = llm1.invoke("prompt1", config={"callbacks": group_manager})
-    result2 = llm2.invoke("prompt2", config={"callbacks": group_manager})
-    
-    group_manager.on_chain_end({"results": [result1, result2]})
-```
-
-In LangSmith, all calls within the group appear as children of a single parent run.
-
-Async version:
-
-```python
-from langchain_core.callbacks.manager import atrace_as_chain_group
-
-async with atrace_as_chain_group("async_group") as group_manager:
-    result1 = await llm1.ainvoke("prompt", config={"callbacks": group_manager})
-    result2 = await llm2.ainvoke("prompt", config={"callbacks": group_manager})
-```
-
-## Event Filtering and Composition
-
-### Tag-based Filtering
-
-Callbacks in the observability layer can filter events by tags:
-
-```python
-class TagFilterHandler(BaseCallbackHandler):
-    def __init__(self, allowed_tags: list[str]):
-        self.allowed_tags = allowed_tags
-    
-    def on_llm_start(self, serialized, prompts, **kwargs):
-        tags = kwargs.get("tags", [])
-        if any(tag in self.allowed_tags for tag in tags):
-            print(f"LLM start: {prompts[0]}")
-```
-
-Tags are inherited from parent runs, enabling hierarchical filtering.
-
-### Metadata-based Filtering
-
-Metadata can filter events by feature flags, user, or deployment:
-
-```python
-class FeatureGateHandler(BaseCallbackHandler):
-    def on_chain_start(self, serialized, inputs, **kwargs):
-        metadata = kwargs.get("metadata", {})
-        if metadata.get("feature_flag:debugging"):
-            print(f"Debug mode enabled for: {serialized.get('name')}")
-```
-
-## Error Handling
-
-### Handler Exceptions
-
-By default, exceptions in handlers are logged and swallowed:
-
-```python
-class FaultyHandler(BaseCallbackHandler):
-    def on_llm_start(self, *args, **kwargs):
-        raise ValueError("Something went wrong")
-        # Logged as warning, execution continues
-
-handler = FaultyHandler()
-result = llm.invoke("input", config={"callbacks": [handler]})  # Succeeds
-```
-
-Enable error propagation with `raise_error=True`:
-
-```python
-handler = FaultyHandler()
-handler.raise_error = True
-result = llm.invoke("input", config={"callbacks": [handler]})  # Raises ValueError
-```
-
-### Async Handler Exceptions in Sync Execution
-
-Exceptions from async handlers invoked via sync `handle_event` are caught generically and logged—they do not honor the `raise_error` flag. This is a pre-existing asymmetry between sync and async paths.
-
-## Streaming and Tokens
-
-### Token Streaming
-
-The `on_llm_new_token` callback fires for each token during streaming:
-
-```python
-class TokenHandler(BaseCallbackHandler):
-    def __init__(self):
-        self.tokens = []
-    
-    def on_llm_new_token(self, token: str, **kwargs):
-        self.tokens.append(token)
-        print(token, end="", flush=True)
-
-handler = TokenHandler()
-result = llm.stream("Tell me a story", config={"callbacks": [handler]})
-```
-
-The `chunk` parameter provides structured token information:
-
-```python
-def on_llm_new_token(self, token, chunk=None, **kwargs):
-    if chunk:
-        print(f"Token: {chunk.text}, Type: {type(chunk).__name__}")
-```
-
-### Stream Events (v3)
-
-For high-fidelity event streaming, use `stream_events(version="v3")` with `on_stream_event`:
-
-```python
-class StreamEventHandler(BaseCallbackHandler):
-    def on_stream_event(self, event, **kwargs):
-        print(f"Event: {event['type']}")
-        # Event types: message-start, content-block-start, 
-        #              content-block-delta, content-block-finish, message-finish
-```
-
-## Testing Callbacks
-
-Use `collect_runs()` to test callback behavior without LangSmith:
+Collect all traces in memory for testing without LangSmith:
 
 ```python
 from langchain_core.tracers.context import collect_runs
-import pytest
 
-def test_chain_tracing():
-    with collect_runs() as collector:
-        result = chain.invoke("input")
+with collect_runs() as run_collector:
+    chain.invoke({"input": "test"})
     
-    assert len(collector.traced_runs) == 1
-    run = collector.traced_runs[0]
-    assert run.name == "my_chain"
-    assert run.inputs == {"input": "input"}
-    assert run.outputs == {"output": result}
+# Access traced runs
+for run in run_collector.traced_runs:
+    print(f"Run: {run.name}")
+    print(f"Output: {run.outputs}")
 ```
 
-For callback handler unit tests:
+This is useful for testing execution flow and verifying correct event ordering without sending data to an external service.
 
-```python
-def test_custom_handler():
-    handler = MyCallbackHandler()
-    manager = CallbackManager(handlers=[handler])
-    
-    managers = manager.on_llm_start(
-        serialized={},
-        prompts=["test"],
-        tags=["test"]
-    )
-    
-    assert handler.was_called
-```
+## Error Handling
 
-## Best Practices
+The callback system is resilient to handler errors:
 
-1. **Use inheritable handlers for cross-cutting concerns** (tracing, error reporting) and non-inheritable handlers for run-specific logic (debugging a single chain).
+- Exceptions in handlers are logged by default (not raised)
+- Set `raise_error=True` on a handler to propagate its exceptions
+- The `ignore_*` properties prevent handlers from receiving unwanted events, reducing error surface
+- Async handlers invoked from sync contexts have exceptions logged and swallowed to avoid deadlocking the event loop
 
-2. **Set `run_inline=True` for handlers that must execute synchronously** (e.g., collecting metrics), and leave `False` for fire-and-forget handlers (e.g., remote logging).
+## Extension Points
 
-3. **Filter by `ignore_*` properties** rather than checking event types in handlers to reduce noise and improve performance.
+To extend the callback system:
 
-4. **Propagate tags and metadata** through your application for hierarchical filtering: `config={"tags": ["user:alice"], "metadata": {"request_id": "req-123"}}`.
+1. **Create a custom handler:** Subclass `BaseCallbackHandler` or `AsyncCallbackHandler` and override event methods
+2. **Filter event types:** Use the `ignore_*` properties to optimize handler execution
+3. **Emit custom events:** Use `dispatch_custom_event` or `adispatch_custom_event` from application code
+4. **Integrate external systems:** Extend `BaseCallbackHandler` to send events to monitoring, logging, or analytics services
+5. **Implement parent-child hierarchies:** Use run managers' `get_child()` method to enable automatic context propagation
 
-5. **Use `collect_runs()` in tests** and `tracing_v2_enabled()` in development for local debugging without LangSmith setup.
-
-6. **Catch exceptions in handlers gracefully**; set `raise_error=True` only for critical handlers that must fail fast.
-
-7. **Use custom events sparingly**; reserve for application-specific milestones (user interactions, business events) rather than component-level instrumentation (which callbacks already provide).
-
-8. **Configure verbose mode in development** to surface chain execution flow via `StdOutCallbackHandler`, but disable in production to avoid log noise.
+Handlers receive complete execution context (run IDs, tags, metadata) enabling flexible instrumentation strategies.

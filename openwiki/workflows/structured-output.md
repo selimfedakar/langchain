@@ -5,7 +5,7 @@ description: "Patterns for obtaining structured, validated output from language 
 tags: [structured-output, output-parser, pydantic, json-schema, validation, type-safe]
 verified:
   - by: openwiki/0.5.0
-    at: 2026-10-25T08:23:03.589Z
+    at: 2026-10-28T08:19:50.216Z
 sources:
   - id: openwiki-source-c52037e7b642f7ac5a7642a8
     resource: repo://libs/core/langchain_core/language_models/chat_models.py
@@ -23,7 +23,7 @@ sources:
     resource: repo://libs/core/langchain_core/output_parsers/transform.py
   - id: openwiki-source-ec30ab6256dd50cc670919f6
     resource: repo://libs/langchain_v1/langchain/agents/structured_output.py
-generated: { by: "openwiki/0.5.0", at: "2026-10-25T08:23:03.589Z" }
+generated: { by: "openwiki/0.5.0", at: "2026-10-28T08:19:50.216Z" }
 ---
 
 ## Overview
@@ -494,6 +494,99 @@ result = address_extractor.invoke(
 #     country='USA'
 # )
 ```
+
+---
+
+## Agent Framework: Strategy-Based Structured Output
+
+For more advanced control over structured output in agent workflows, the LangChain agent framework (in `repo://libs/langchain_v1/langchain/agents/structured_output.py#L1-L104`) provides three strategies that determine how the model enforces the schema:
+
+### Schema Types
+
+Before applying strategies, understand the supported schema types—all are encapsulated in **`_SchemaSpec`** (in `repo://libs/langchain_v1/langchain/agents/structured_output.py#L107-L193`), which normalizes heterogeneous schema definitions:
+
+- **Pydantic models** (`BaseModel` subclasses): Full runtime validation with typed fields and constraints.
+- **Dataclasses**: Native Python dataclass; validated using `TypeAdapter`.
+- **TypedDict**: Type-hinted dictionaries; validated against their schema.
+- **JSON Schema dicts**: Raw JSON schemas (e.g., `{"type": "object", "properties": {...}}`); returned as unvalidated dicts.
+
+`_SchemaSpec` derives the JSON schema representation (`schema.model_json_schema()`, `TypeAdapter(...).json_schema()`, or the dict itself), stores the schema kind classification, and generates a name and description for tool construction.
+
+### ToolStrategy: Artificial Tool Calling
+
+**`ToolStrategy`** (in `repo://libs/langchain_v1/langchain/agents/structured_output.py#L197-L269`) enforces structured output by binding an artificial tool to the model, then parsing the tool call arguments:
+
+```python
+from langchain.agents.structured_output import ToolStrategy
+from pydantic import BaseModel
+
+class EntityResponse(BaseModel):
+    entity_type: str
+    name: str
+    confidence: float
+
+strategy = ToolStrategy(
+    schema=EntityResponse,
+    tool_message_content="Entity extracted successfully",
+    handle_errors=True  # Retry on validation failure
+)
+
+# strategy.schema_specs contains one _SchemaSpec wrapping EntityResponse
+```
+
+**Error handling** via `handle_errors` enables automatic retries when tool arguments fail validation:
+
+- `True`: Catch all exceptions; retry with default error message.
+- `str`: Catch all exceptions; retry with your custom message.
+- `type[Exception]` or `tuple[type[Exception], ...]`: Catch only specific exception types.
+- `Callable[[Exception], str]`: Custom function that generates the retry message.
+- `False`: No retry; let exceptions propagate.
+
+**Important limitation**: When using raw JSON schema dicts (not Pydantic/dataclass/TypedDict), tool arguments are returned **as-is without validation**, so `handle_errors` cannot trigger retries. To get validation and error recovery, express the schema as a Pydantic model, dataclass, or TypedDict instead.
+
+### ProviderStrategy: Native Structured Output
+
+**`ProviderStrategy`** (in `repo://libs/langchain_v1/langchain/agents/structured_output.py#L271-L315`) delegates structured output to the model provider's native capabilities (e.g., OpenAI's `response_format` with JSON Schema):
+
+```python
+from langchain.agents.structured_output import ProviderStrategy
+
+strategy = ProviderStrategy(
+    schema=EntityResponse,
+    strict=True  # Request strict provider-side schema validation (if supported)
+)
+
+# strategy.schema_spec contains the _SchemaSpec
+# strategy.to_model_kwargs() returns {"response_format": {...}} for binding
+```
+
+The provider handles schema enforcement and returns JSON conforming to the schema. No artificial tool call overhead. Validation and error recovery depend entirely on the provider's implementation.
+
+### AutoStrategy: Automatic Selection
+
+**`AutoStrategy`** (in `repo://libs/langchain_v1/langchain/agents/structured_output.py#L458-L472`) auto-detects and selects the best strategy based on the model's capabilities at runtime:
+
+```python
+from langchain.agents.structured_output import AutoStrategy
+
+strategy = AutoStrategy(schema=EntityResponse)
+# At runtime, the agent framework chooses ProviderStrategy or ToolStrategy
+# based on model capabilities and configuration
+```
+
+This provides **zero-friction** schema binding: use the same code across models with different native capabilities.
+
+### Output Validation and Error Recovery
+
+When using **`ToolStrategy`** with structured validation:
+
+1. The model calls the artificial tool with arguments matching the schema.
+2. The framework parses the arguments using `_parse_with_schema()` (in `repo://libs/langchain_v1/langchain/agents/structured_output.py#L78-L104`).
+3. If parsing fails (e.g., Pydantic validation error), a `StructuredOutputValidationError` is raised (in `repo://libs/langchain_v1/langchain/agents/structured_output.py#L61-L75`).
+4. If `handle_errors` is enabled, the error message is sent back to the model for automatic retry.
+5. If the model returns multiple tool calls when only one is expected, `MultipleStructuredOutputsError` is raised.
+
+**Output bindings** (`OutputToolBinding`, `ProviderStrategyBinding`) encapsulate the schema and parsing logic for runtime use in agent execution.
 
 ---
 

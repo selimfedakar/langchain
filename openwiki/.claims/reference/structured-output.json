@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:1d8b388c78913efdf49e892554ce8e75344b5208abbb674fd03455a18df93e99",
+  "pageVersion": "sha256:4a2f035498094ccffda6cf700c1c676d39ec98cf3781928cfcc7242030cb7f67",
   "claims": [
     {
       "id": "claim_302f5ebf43a74fb2a31f7614893cd310",
@@ -12,13 +12,13 @@
         },
         {
           "resource": "repo://libs/langchain_v1/langchain/agents/structured_output.py",
-          "version": "repo-file-v1:sha256:e3d5032f156d07531da71620710f0bb0231b3ba8ab241a5417759ebb810b71cf"
+          "version": "repo-file-v1:sha256:74590175ef1042dd8bd97f5c88a988b3818ef1e450eefd8f0ec67d7c6324fd2f"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.0",
-    "at": "2026-10-25T08:23:03.589Z"
+    "at": "2026-10-28T08:19:50.216Z"
   }
 }

@@ -3,9 +3,6 @@ type: "Integration Pattern"
 title: "Partner Pattern: Provider Integration Framework"
 description: "Architecture and implementation patterns for adding new provider integrations to LangChain. Covers ChatModel subclassing, message conversion, tool calling, and structured output support."
 tags: [partner, integration, chat-model, tool-calling, structured-output, message-conversion, package-structure]
-verified:
-  - by: openwiki/0.5.0
-    at: 2026-10-25T08:23:03.589Z
 sources:
   - id: openwiki-source-c52037e7b642f7ac5a7642a8
     resource: repo://libs/core/langchain_core/language_models/chat_models.py
@@ -19,7 +16,10 @@ sources:
     resource: repo://libs/partners/openai/pyproject.toml
   - id: openwiki-source-86b6689572ac828885d7d4b0
     resource: repo://libs/partners/README.md
-generated: { by: "openwiki/0.5.0", at: "2026-10-25T08:23:03.589Z" }
+generated: { by: "openwiki/0.5.0", at: "2026-10-28T08:19:50.216Z" }
+verified:
+  - by: openwiki/0.5.0
+    at: 2026-10-28T08:19:50.216Z
 ---
 
 # Partner Pattern: Provider Integration Framework
@@ -64,14 +64,19 @@ Example (from langchain-openai):
 ```toml
 [project]
 name = "langchain-openai"
+requires-python = ">=3.10.0,<4.0.0"
 dependencies = [
-    "langchain-core>=1.6.10,<2.0.0",
+    "langchain-core>=1.7.0,<2.0.0",
+    "certifi>=2024.6.2",
     "openai>=2.45.0",
     "tiktoken>=0.7.0",
 ]
 
 [project.optional-dependencies]
-azure-identity = ["azure-identity>=1.25.0"]
+azure-identity = [
+    "azure-identity>=1.25.0",
+    "aiohttp>=3.11.0",
+]
 ```
 
 ### Public API (_\_init\_\_.py)

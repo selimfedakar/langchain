@@ -3,9 +3,6 @@ type: "Reference"
 title: "MCP (Model Context Protocol) Integration"
 description: "MCPAdapter bridges MCP servers to LangChain agents, discovering tools, handling protocol negotiation via FastMCP, managing multiple transports, and supporting mid-call user input via LangGraph interrupts."
 tags: [mcp, protocol, tools, adapter, integration, langgraph]
-verified:
-  - by: openwiki/0.5.0
-    at: 2026-10-20T08:25:57.412Z
 sources:
   - id: openwiki-source-6d1e3478d5b63988ee177552
     resource: repo://libs/langchain_v1/examples/mcp/auth_bearer.py
@@ -32,6 +29,9 @@ sources:
   - id: openwiki-source-4715c337e9b93b9d00846133
     resource: repo://libs/langchain_v1/langchain/mcp/tools.py
 generated: { by: "openwiki/0.5.0", at: "2026-09-28T08:35:20.640Z" }
+verified:
+  - by: openwiki/0.5.0
+    at: 2026-10-28T08:19:50.216Z
 ---
 
 ## Overview

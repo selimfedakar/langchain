@@ -1,10 +1,11 @@
 ---
 type: "Reference"
-title: "Run only core tests (skip all @pytest.mark.requires tests)"
-openwiki_generated: true
+title: "Unit Tests: Core Testing Patterns and Coverage"
+description: "Unit test structure, fixtures, mocking strategies, and test coverage guidelines for LangChain core components."
+tags: [testing, pytest, fixtures, mocking, async, network-isolation]
 verified:
   - by: openwiki/0.5.0
-    at: 2026-10-25T08:23:03.589Z
+    at: 2026-10-28T08:19:50.216Z
 sources:
   - id: openwiki-source-8f1875229ad4a704c8e20a06
     resource: repo://libs/core/Makefile
@@ -22,7 +23,7 @@ sources:
     resource: repo://libs/core/tests/unit_tests/runnables/test_runnable.py
   - id: openwiki-source-f1101c726c80bfb588acd467
     resource: repo://libs/core/tests/unit_tests/test_ssrf_protection.py
-generated: { by: "openwiki/0.5.0", at: "2026-10-25T08:23:03.589Z" }
+generated: { by: "openwiki/0.5.0", at: "2026-10-28T08:19:50.216Z" }
 ---
 
 
@@ -53,8 +54,8 @@ Pytest discovers and applies `conftest.py` files from parent directories up thro
 
 The main `conftest.py` provides:
 
-- **`blockbuster` fixture** – Async blocking detection preventing accidental I/O in async contexts
-- **`deterministic_uuids` fixture** – Replaces `uuid.uuid4()` with deterministic values for reproducible snapshots
+- **`blockbuster` fixture** – Detects async blocking violations by monitoring `os.stat`, `os.path.abspath`, and `io.TextIOWrapper.read` calls, allowing blocking only in safe callsites like langsmith client configuration and freezegun internals
+- **`deterministic_uuids` fixture** – Replaces `uuid.uuid4()` with sequential UUIDs in form `UUID('00000000-0000-4000-8000-{i:012}')` for reproducible snapshots
 - **Custom markers and CLI options** – `--only-extended`, `--only-core` to filter test execution
 - **`requires` marker** – Conditional test skipping when optional dependencies are missing
 
@@ -95,9 +96,11 @@ asyncio_default_fixture_loop_scope = "function"
 ```
 
 - **`asyncio_mode = "auto"`** – Automatically marks async test functions and fixtures as asyncio tests
-- **`asyncio_default_fixture_loop_scope = "function"`** – Fresh event loop per test function
+- **`asyncio_default_fixture_loop_scope = "function"`** – Provides fresh event loop per test function, preventing state leakage
 - **`--snapshot-warn-unused`** – Warns about unused snapshot files during test runs
 - **`--strict-markers`** – Rejects undefined markers to catch typos
+- **`--strict-config`** – Fails on invalid pytest configuration
+- **`--durations=5`** – Reports the 5 slowest test durations
 
 ### Execution with Network Isolation
 
@@ -115,19 +118,23 @@ pytest -n auto --benchmark-disable --disable-socket --allow-unix-socket
 
 ### Core Testing Packages
 
-| Package | Purpose |
-|---------|---------|
-| `pytest>=9.0.3` | Test runner and framework |
-| `pytest-asyncio>=1.3.0` | Async/await test support |
-| `pytest-mock>=3.10.0` | `MockerFixture` for mocking |
-| `pytest-socket>=0.7.0` | Network call blocking |
-| `pytest-xdist>=3.6.1` | Parallel test execution |
-| `syrupy>=5.0.0` | Snapshot testing |
-| `freezegun>=1.2.2` | Time mocking for determinism |
-| `responses>=0.25.0` | HTTP request mocking |
-| `blockbuster>=1.5.18` | Async blocking detection |
-| `pytest-benchmark` | Performance micro-benchmarks |
-| `pytest-codspeed` | Continuous benchmarking |
+Declared in `pyproject.toml` [dependency-groups] test section:
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `pytest` | `>=9.0.3,<10.0.0` | Test runner and framework |
+| `pytest-asyncio` | `>=1.3.0,<2.0.0` | Async/await test support |
+| `pytest-mock` | `>=3.10.0,<4.0.0` | `MockerFixture` for mocking |
+| `pytest-socket` | `>=0.7.0,<0.9.0` | Network call blocking |
+| `pytest-xdist` | `>=3.6.1,<4.0.0` | Parallel test execution |
+| `syrupy` | `>=5.0.0,<6.0.0` | Snapshot testing |
+| `freezegun` | `>=1.2.2,<2.0.0` | Time mocking for determinism |
+| `responses` | `>=0.25.0,<1.0.0` | HTTP request mocking |
+| `blockbuster` | `>=1.5.18,<1.6.0` | Async blocking detection |
+| `pytest-benchmark` | (latest) | Performance micro-benchmarks |
+| `pytest-codspeed` | (latest) | Continuous benchmarking |
+| `pytest-watcher` | `>=0.3.4,<1.0.0` | File watcher for test reruns |
+| `langchain-tests` | `>=1.1.9,<2.0.0` | Standard test utilities |
 
 ## Async Testing Patterns
 

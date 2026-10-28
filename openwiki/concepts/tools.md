@@ -1,10 +1,11 @@
 ---
-type: "Reference"
-title: "Bare decorator - infers schema from function signature"
-openwiki_generated: true
+type: "Agent Integration Layer"
+title: "Tools: Agent Actions and Provider Integration"
+description: "Structured interfaces for language models to invoke external functions, with schema generation, validation, error handling, and runtime injection of framework context."
+tags: ["tools", "agents", "schema-inference", "runnable-integration", "structured-output"]
 verified:
   - by: openwiki/0.5.0
-    at: 2026-10-25T08:23:03.589Z
+    at: 2026-10-28T08:19:50.216Z
 sources:
   - id: openwiki-source-c52037e7b642f7ac5a7642a8
     resource: repo://libs/core/langchain_core/language_models/chat_models.py
@@ -18,37 +19,53 @@ sources:
     resource: repo://libs/core/langchain_core/tools/simple.py
   - id: openwiki-source-b816e651a5890bde13cf8013
     resource: repo://libs/core/langchain_core/tools/structured.py
-generated: { by: "openwiki/0.5.0", at: "2026-10-25T08:23:03.589Z" }
+generated: { by: "openwiki/0.5.0", at: "2026-10-28T08:19:50.216Z" }
 ---
-
 
 ## Overview
 
-Tools extend the capabilities of language models by enabling them to interact with external systems and perform specialized tasks. In LangChain, tools are components that agents can select and invoke to accomplish user objectives. Tools provide structured interfaces with input schemas, descriptions for model guidance, and execution logic that may be sync or async.
+Tools extend language models with the ability to interact with external systems and accomplish specialized tasks. In LangChain, tools are structured components that agents select and invoke to fulfill user objectives. Each tool provides a JSON schema describing its inputs, a description guiding model selection, and execution logic supporting both sync and async operation.
 
-A tool workflow involves three key phases:
+A tool workflow follows three phases:
 
-1. **Schema Definition & Model Binding**: Tools register their input requirements via JSON schemas so models can generate well-formed invocations.
-2. **Tool Calling**: The language model generates structured tool calls based on the user query and tool descriptions.
-3. **Execution & Result Formatting**: The tool execution framework validates inputs, runs the tool logic, handles errors, and returns results wrapped in `ToolMessage` to continue the agentic loop.
+1. **Schema Definition & Model Binding**: Tools define input requirements via JSON schemas so models can generate well-formed invocations
+2. **Tool Calling**: The language model generates structured tool calls referencing tool names and arguments
+3. **Execution & Response**: The tool validates inputs, executes logic, applies error handling, and returns results wrapped in a `ToolMessage` to continue the agent loop
 
-## Tool Types and Definition
+## Tool Foundations
 
-### BaseTool: The Foundation
+### BaseTool: Universal Interface
 
-All tools in LangChain extend `BaseTool`, a `RunnableSerializable` that accepts string, dict, or `ToolCall` inputs and produces output. Tools implement the `_run` abstract method (sync) and optionally `_arun` (async).
+`BaseTool` is an abstract `RunnableSerializable` that accepts string, dict, or `ToolCall` inputs and returns typed output. All LangChain tools inherit from `BaseTool` and must implement the abstract `_run` method for sync execution and optionally `_arun` for async.
+
+Core responsibilities:
+
+- **Input schema management**: Store schema as Pydantic `BaseModel`, dict (JSON Schema), or auto-inferred from function signatures
+- **Input validation & parsing**: Convert user input (string or dict) to validated arguments, applying Pydantic defaults and filtering framework arguments
+- **Execution orchestration**: Call `_run` or `_arun` with callback context, handle exceptions per configuration, and format output
+- **Output wrapping**: Convert tool result to `ToolMessage` when invoked with a tool call ID, or return raw output otherwise
+- **Runtime injection**: Supply framework-injected arguments (`run_manager`, `RunnableConfig`) and user-injected arguments (`InjectedToolArg`) at execution time
 
 Core properties:
-- **name**: Unique identifier for the tool, used by models and in tool call references.
-- **description**: Describes the tool's purpose, parameters, and usage; guides model selection and parameter generation.
-- **args_schema**: A Pydantic `BaseModel` or JSON schema dict defining input argument validation and structure. When omitted, inferred from function signatures.
-- **return_direct**: Whether agent loops terminate after this tool executes (typically for final answer tools).
 
-Validation and error handling:
-- **handle_tool_error**: Controls how `ToolException` is handled: `False` (re-raise), `True` (return exception message), string (return custom message), or callable (custom handler).
-- **handle_validation_error**: Controls handling of input validation errors: `False` (re-raise), `True` (return "Tool input validation error"), string (custom message), or callable (custom handler).
+- **name**: Unique identifier used by models and in tool call references
+- **description**: Explains the tool's purpose, parameters, and usage; guides model selection
+- **args_schema**: Pydantic `BaseModel` or JSON schema dict defining input arguments. When omitted, inferred from function signature
+- **return_direct**: Boolean flag controlling whether the agent loop terminates after this tool executes (typically for final-answer tools)
+- **response_format**: Controls output wrapping—`'content'` (default, treats output as message content) or `'content_and_artifact'` (expects tuple of content and artifact)
 
-### The Tool Decorator
+Error handling configuration:
+
+- **handle_tool_error**: Governs how `ToolException` is handled: `False` (re-raise), `True` (return exception message), string (return custom message), or callable (custom handler receiving the exception)
+- **handle_validation_error**: Governs how input validation errors are handled: `False` (re-raise), `True` (return generic error), string (custom message), or callable (custom handler)
+
+Additional fields:
+
+- **callbacks**: Lifecycle event handlers for observability
+- **tags** / **metadata**: Labels for tracking and instrumentation
+- **extras**: Provider-specific configuration (e.g., Anthropic `cache_control`, `defer_loading`)
+
+### The @tool Decorator
 
 The `@tool` decorator is the most concise way to create tools from Python functions. It supports multiple usage patterns:
 
@@ -76,9 +93,27 @@ def advanced_search(q: str, limit: int = 10) -> str:
 def configured_tool(x: int) -> str:
     """Tool with explicit schema."""
     return str(x)
+
+# Async tools
+@tool
+async def async_search(query: str) -> str:
+    """Async search implementation."""
+    await asyncio.sleep(0.1)
+    return f"Async results for {query}"
+
+# With Google-style docstring parsing
+@tool(parse_docstring=True)
+def documented_tool(query: str, limit: int) -> str:
+    """Search for documents.
+    
+    Args:
+        query: The search query
+        limit: Maximum results to return
+    """
+    return f"Found {limit} results for {query}"
 ```
 
-The decorator creates either a `StructuredTool` (when input schema inference is enabled) or a simple `Tool` (for single string inputs when `infer_schema=False`).
+The decorator creates either a `StructuredTool` (when schema inference is enabled) or a simple `Tool` (for single string inputs when `infer_schema=False`).
 
 ### StructuredTool
 
@@ -103,16 +138,20 @@ tool = StructuredTool.from_function(
 )
 ```
 
-### Simple Tool
+### Simple Tool (Tool)
 
-`Tool` is a lighter-weight variant that accepts single string inputs and returns string outputs. Used when `infer_schema=False` or for backwards compatibility.
+`Tool` is a lightweight variant for single string inputs and string outputs. Used when `infer_schema=False` or for backwards compatibility.
 
 ### Class-Based Tools
 
-Custom tools inherit directly from `BaseTool`:
+Custom tools can extend `BaseTool` directly:
 
 ```python
 from langchain_core.tools import BaseTool
+from pydantic import BaseModel
+
+class MySchema(BaseModel):
+    x: int
 
 class CustomTool(BaseTool):
     name: str = "custom_tool"
@@ -128,9 +167,9 @@ class CustomTool(BaseTool):
         return "result"
 ```
 
-## Tool Schemas
+## Schema Generation and Inference
 
-### Schema Inference
+### Automatic Schema Inference
 
 When a tool is created with `infer_schema=True` (the default), the schema is automatically derived from the function signature and type annotations:
 
@@ -141,7 +180,16 @@ def process(value: int, flag: bool = False) -> str:
     return f"Processed {value}"
 ```
 
-The decorator generates a Pydantic model with `value` (required) and `flag` (optional, defaults to False). The tool's JSON schema becomes the model's `model_json_schema()`.
+The decorator generates a Pydantic model with `value` (required) and `flag` (optional, default False). The tool's JSON schema becomes `model_json_schema()` of this model.
+
+The `create_schema_from_function` utility does the heavy lifting:
+
+1. Extracts function signature and type hints (including `Annotated` metadata for field descriptions)
+2. Uses Pydantic's `validate_arguments` to build an initial model
+3. Filters out framework arguments (`run_manager`, `callbacks`, `self`/`cls`)
+4. Filters out injected arguments annotated with `InjectedToolArg` or `InjectedToolCallId`
+5. Applies docstring parameter descriptions if `parse_docstring=True`
+6. Creates a Pydantic subset model with only user-supplied fields
 
 ### Manual Schema Definition
 
@@ -161,7 +209,7 @@ def search(query: str, limit: int) -> str:
 
 ### JSON Schema Format
 
-For models that don't use Pydantic, pass a JSON schema dict:
+For non-Pydantic use cases, pass a JSON schema dict:
 
 ```python
 tool = BaseTool(
@@ -177,11 +225,31 @@ tool = BaseTool(
 )
 ```
 
-### Injected Arguments
+### Parsing Google-Style Docstrings
 
-Arguments can be marked for runtime injection rather than user input. These arguments are excluded from the tool schema sent to models.
+When `parse_docstring=True`, parameter descriptions are extracted from Google-style docstrings and merged into the schema:
 
-**InjectedToolArg** marks arguments to be supplied by the framework:
+```python
+@tool(parse_docstring=True)
+def search(query: str, limit: int = 10) -> str:
+    """Search for documents.
+    
+    Args:
+        query: The search query string
+        limit: Maximum number of results
+    """
+    return query
+```
+
+The resulting schema includes both the parameter types and the documented descriptions.
+
+## Runtime Argument Injection
+
+Tool arguments can be marked for framework injection rather than user input. These arguments are excluded from the tool schema sent to models but injected at execution time.
+
+### InjectedToolArg
+
+Mark an argument with `InjectedToolArg` to exclude it from the model-facing schema:
 
 ```python
 from typing import Annotated
@@ -196,9 +264,15 @@ def my_tool(
     return f"{query} + {injected_value}"
 ```
 
-**InjectedToolCallId** provides the tool call ID:
+The `injected_value` parameter does not appear in the tool's JSON schema and must be supplied at call time via the tool execution framework.
+
+### InjectedToolCallId
+
+Receive the tool call ID (generated by the model):
 
 ```python
+from typing import Annotated
+from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool, InjectedToolCallId
 
 @tool
@@ -212,7 +286,7 @@ def my_tool(
 
 ## Tool Calling Workflow
 
-### Schema Generation and Model Binding
+### Schema Binding to Models
 
 When tools are bound to a chat model via `bind_tools()`, the model receives each tool's JSON schema:
 
@@ -224,48 +298,42 @@ tools = [search_tool, calculator_tool]
 bound_model = model.bind_tools(tools)
 ```
 
-The model then uses the schemas to guide tool selection and parameter generation. Models typically format tool calls as function calls or structured outputs in their response.
+The `bind_tools` method on `BaseChatModel` returns a new `Runnable` that instructs the model to generate `ToolCall` objects in its response. Models format tool calls as structured objects containing name, arguments, and a unique ID.
 
 ### Tool Call Structure
 
 A tool call is a structured object containing:
-- **name**: The tool name (matches tool instance name).
-- **args**: A dict of arguments (or a single string for simple tools).
-- **tool_call_id**: A unique ID generated by the model (typically a UUID or provider-specific string).
 
-```python
-tool_call = {
-    "name": "search",
-    "args": {"query": "LangChain documentation"},
-    "tool_call_id": "call_abc123"
-}
-```
+- **name**: The tool identifier (matches tool instance name)
+- **args**: Argument dict (or single string for simple tools)
+- **tool_call_id** (or **id**): Unique ID generated by the model (typically UUID or provider-specific string)
+
+The framework recognizes tool calls via `isinstance(value, dict) and value.get("type") == "tool_call"`.
 
 ### Input Validation and Parsing
 
-When a tool is invoked, the `_parse_input` method validates input against the tool's args schema:
+When a tool is invoked, the `_parse_input` method validates input against the tool's `args_schema`:
 
-```python
-tool_input, kwargs = tool._prep_run_args(
-    {"query": "test", "limit": 5},
-    config=config
-)
-```
+1. If the input is a dict, validate it against the Pydantic schema (if present)
+2. Apply Pydantic defaults for fields with explicit defaults
+3. Inject runtime-supplied arguments (`tool_call_id` if the schema expects it via `InjectedToolCallId`)
+4. Filter out framework arguments (`run_manager`, `callbacks`) and injected args from the final kwargs passed to the wrapped function
 
-The framework:
-1. Validates the input dict against the Pydantic schema if present.
-2. Applies Pydantic defaults for fields with explicit defaults.
-3. Injects runtime-supplied arguments (e.g., `run_manager`, `tool_call_id`).
-4. Filters out framework arguments (`run_manager`, `callbacks`) from the user-supplied input before passing to the wrapped function.
+The `_to_args_and_kwargs` method converts the validated input to positional/keyword arguments suitable for the tool's `_run` method.
 
 ### Execution and Error Handling
 
-The `run()` method (or async `arun()`) executes the tool with callback and config context:
+The `run()` method (or async `arun()`) orchestrates tool execution:
 
-1. **Validation**: Input is validated against the schema. Validation errors are handled per `handle_validation_error`.
-2. **Execution**: The `_run` method is invoked with validated arguments, optionally receiving `run_manager` and `config` if the signature accepts them.
-3. **Error Handling**: `ToolException` is handled per `handle_tool_error`. Other exceptions are re-raised unless handled.
-4. **Response Formatting**: Tool output is wrapped in a `ToolMessage` (if a tool_call_id was provided) or returned directly.
+1. **Configure callbacks**: Set up callback managers for lifecycle events
+2. **Emit start event**: Fire `on_tool_start` for observability
+3. **Validate input**: Use `_parse_input` to validate and parse the input dict
+4. **Convert to args/kwargs**: Use `_to_args_and_kwargs` to prepare function arguments
+5. **Inject runtime context**: If the `_run` signature accepts `run_manager` or `config`, inject these
+6. **Execute**: Call `_run` (or `_arun` for async) within config context
+7. **Handle errors**: Catch `ToolException` and `ValidationError`, applying the configured error handlers
+8. **Format output**: Wrap result in `ToolMessage` (if `tool_call_id` is provided) using `_format_output`
+9. **Emit end/error event**: Fire `on_tool_end` or `on_tool_error` for observability
 
 ```python
 try:
@@ -273,13 +341,15 @@ try:
         {"query": "test"},
         tool_call_id="call_123"
     )
-    # result is a ToolMessage
+    # result is a ToolMessage if tool_call_id was provided
 except ToolException as e:
     # Handled per handle_tool_error
     pass
 ```
 
-### Tool Response Formats
+### Output Formatting
+
+Tools support two response formats:
 
 **content** (default): Tool output becomes the `ToolMessage` content.
 
@@ -292,9 +362,15 @@ def structured_output() -> tuple[str, dict]:
     return "summary", {"detailed": "data"}
 ```
 
-## Rendering and Tool Description
+The `_format_output` utility:
+- Detects if output is a `ToolMessage` or `ToolOutputMixin` (returned as-is)
+- Detects if output is a list of `ToolOutputMixin` instances (returned as-is)
+- Normalizes content to string or list of message content blocks
+- Wraps in `ToolMessage` with provided `tool_call_id`, `name`, and `status`
 
-Tools can be rendered for display and model context:
+## Rendering Tools for Display
+
+Tools can be rendered as text for display in prompts or logs:
 
 ```python
 from langchain_core.tools import render_text_description, render_text_description_and_args
@@ -311,11 +387,35 @@ detailed = render_text_description_and_args([search_tool])
 # search - Search for information, args: {"query": {"type": "string"}}
 ```
 
+## Tool Schema Lifecycle and Caching
+
+### Tool Call Schema Memoization
+
+For performance, the `tool_call_schema` property (the schema sent to models, excluding injected arguments) is memoized per tool instance. This avoids regenerating Pydantic subset models and JSON schemas on every agent invocation.
+
+The memoization is cleared when `name`, `description`, or `args_schema` is reassigned:
+
+```python
+tool = search_tool
+schema1 = tool.tool_call_schema  # Generated and cached
+
+tool.description = "Updated description"
+# Memo cleared; next access regenerates
+
+schema2 = tool.tool_call_schema  # New schema generated and cached
+```
+
+The subset model class is cached in `_tool_call_schema_memo` and its `model_json_schema()` method is patched to cache the generated dict. The patch avoids Pydantic's lack of per-class caching, which would otherwise cause agent loops to pay full schema generation cost on every model invocation.
+
+### Pickling
+
+Tools can be pickled for serialization and deployment. Memoized schemas (dynamically created Pydantic classes) are dropped during pickling and rebuilt lazily on next access.
+
 ## Advanced Patterns
 
-### Error Handling with Custom Handlers
+### Custom Error Handling
 
-Define custom logic for handling tool errors:
+Define custom logic for handling tool errors and validation errors:
 
 ```python
 def handle_search_error(e: ToolException) -> str:
@@ -330,27 +430,16 @@ def search(query: str) -> str:
     return f"Found: {query}"
 ```
 
-### Async Tools
-
-Coroutines are converted to async tools:
-
-```python
-@tool
-async def async_search(query: str) -> str:
-    """Async search implementation."""
-    import asyncio
-    await asyncio.sleep(0.1)
-    return f"Async results for {query}"
-```
-
-### Tool Selection and Composition
+### Tool Composition in Agents
 
 Agents select tools based on descriptions and execute them in sequence:
 
 ```python
+from langchain_core.agents import create_react_agent
+
 tools = [search_tool, calculator_tool, weather_tool]
-agent = initialize_agent(tools, model, agent="openai-functions")
-result = agent.run("What is the square root of 144 in Celsius?")
+agent = create_react_agent(model, tools, prompt)
+result = agent.invoke({"input": "What is the square root of 144?"})
 ```
 
 Each tool call produces a `ToolMessage` that becomes input context for the next model invocation.
@@ -383,55 +472,20 @@ def cached_search(query: str) -> str:
     return query
 ```
 
-## Tool Binding to Models
+Chat model implementations read the `extras` field when constructing provider payloads and include provider-specific configuration in tool definitions.
 
-Chat models implement `bind_tools()` to attach tools and configure tool calling behavior:
+## Key Responsibilities and Design Principles
 
-```python
-model = ChatOpenAI(model="gpt-4")
+**Schema Management**: Tools maintain input schema as Pydantic models, JSON dicts, or auto-inferred from signatures. Schemas are exposed in model-facing and internal forms, with injected arguments filtered from the former.
 
-# Bind tools
-bound_model = model.bind_tools(
-    [search_tool, calculator_tool],
-    tool_choice="any"  # Let model choose any tool
-)
+**Input Validation**: Validate user-supplied arguments against schemas, apply Pydantic defaults, handle validation errors per configuration, and filter framework arguments before passing to the wrapped function.
 
-# Invoke - model response contains ToolCall objects
-response = bound_model.invoke("What is 2+2?")
+**Execution**: Run tool logic synchronously or asynchronously, catch exceptions, apply error handlers per configuration, and format output with optional wrapping in `ToolMessage`.
 
-# response.tool_calls contains structured tool calls
-for tool_call in response.tool_calls:
-    result = invoke_tool(tool_call)  # Execute tool
-    # Continue agent loop with result...
-```
+**Callback Integration**: Emit lifecycle events (`on_tool_start`, `on_tool_end`, `on_tool_error`) for observability, debugging, and instrumentation.
 
-## Lifecycle and State
+**Runnable Protocol**: Implement `invoke` and `ainvoke` for pipeline composition, enabling tools to be used in LangChain's composable runtime system.
 
-### Tool Call Schema Memoization
+**Model Integration**: Expose schemas in provider formats (OpenAI, Anthropic, etc.) via `bind_tools` for structured tool calling and agent execution.
 
-For performance, the `tool_call_schema` (the schema sent to models) is memoized per tool instance and cached after first access. This avoids regenerating Pydantic subset models and JSON schemas on every agent invocation.
-
-The memo is cleared when `name`, `description`, or `args_schema` is reassigned:
-
-```python
-tool = search_tool
-schema1 = tool.tool_call_schema  # Generated and cached
-
-tool.description = "Updated description"
-# Memo cleared; next access regenerates
-
-schema2 = tool.tool_call_schema  # New schema generated and cached
-```
-
-### Pickling
-
-Tools can be pickled for serialization, but memoized schemas (which are dynamically created classes) are dropped during pickling and rebuilt on next access.
-
-## Key Responsibilities and Design
-
-- **Schema Management**: Tools maintain input schema as Pydantic models or dicts, infer from function signatures when needed, and expose the schema for model binding.
-- **Input Validation**: Validate user-supplied arguments against the schema, handle validation errors per configuration, and filter framework arguments.
-- **Execution**: Run the tool logic (sync or async), catch exceptions, apply error handlers, and format output.
-- **Callback Integration**: Emit lifecycle events (`on_tool_start`, `on_tool_end`, `on_tool_error`) for observability and debugging.
-- **Runnable Protocol**: Implement `invoke` and `ainvoke` for pipeline composition and streaming support.
-- **Model Integration**: Expose schemas in provider formats (OpenAI, Anthropic, etc.) for model binding and structured tool calling.
+**Runtime Injection**: Support framework-injected arguments (callbacks, config, run managers) and user-injected arguments (via `InjectedToolArg`) without requiring them in the model-facing schema.

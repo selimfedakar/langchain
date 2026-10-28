@@ -3,15 +3,15 @@ type: Redirect
 title: Structured Output (Deprecated Reference)
 description: This page has been superseded. See the primary Structured Output and Response Formatting documentation for current content.
 tags: [structured-output, redirect, deprecated]
-verified:
-  - by: openwiki/0.5.0
-    at: 2026-10-25T08:23:03.589Z
 sources:
   - id: openwiki-source-71e882e1ac9757ea8e959a7c
     resource: repo://libs/langchain_v1/langchain/agents/factory.py
   - id: openwiki-source-ec30ab6256dd50cc670919f6
     resource: repo://libs/langchain_v1/langchain/agents/structured_output.py
 generated: { by: "openwiki/0.5.0", at: "2026-10-25T08:23:03.589Z" }
+verified:
+  - by: openwiki/0.5.0
+    at: 2026-10-28T08:19:50.216Z
 ---
 
 ## Deprecated Page

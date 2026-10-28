@@ -5,7 +5,7 @@ description: "The init_chat_model factory function and provider routing system. 
 tags: [model-initialization, factory, provider-routing, model-discovery, chat-models, configuration]
 verified:
   - by: openwiki/0.5.0
-    at: 2026-10-25T08:23:03.589Z
+    at: 2026-10-28T08:19:50.216Z
 sources:
   - id: openwiki-source-c479d4fffee5cf62576699e4
     resource: repo://libs/langchain_v1/langchain/chat_models/base.py

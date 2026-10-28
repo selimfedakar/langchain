@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:178636640bc405323f46b967fe490a5dac307c2afb06e124221a123ce16d6451",
+  "pageVersion": "sha256:e7f6fe73c492e9ab78e10831d14d28846873091f4622fc7fec7a64027c209a64",
   "claims": [
     {
       "id": "claim_45a8435fd4d34f05bd759e8dc55f0454",
@@ -127,10 +127,80 @@
           "version": "repo-lines-v1:sha256:485aeea7ce01b8ecd29e33516bc8e8bf4ed7cae199d406cc811fd38cc51e00df:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0ZGY1YmUyNTU1MjBmMmRiMzBlZTE1NTk3ZTcxNmVkMGZjYTczM2E3ZWYzYTk4MTYxZDFiMzcyOGQ2NDg2NWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFjMjRhMTg3OTU1MTA1ODhkMmI2ZTI1MmQ3MWJmZDE4ZjZkZTM2Y2VlMDEwMDA5ZDgzMDczODE3ZDg2NTEyNjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU0MTM1ODAzODA1MTE2MWU5NTg1NjkzNmIyNGNhZDkwMDE2NzgwMTJiY2I5OTgzNTIzZjg4NjZkMzE4MDU3NzcifQ"
         }
       ]
+    },
+    {
+      "id": "claim_4310f34cea234ce783d139b773dc4bd8",
+      "statement": "_SchemaSpec is a dataclass that encapsulates a structured output schema (Pydantic model, dataclass, TypedDict, or JSON schema dict) and normalizes their handling by deriving the JSON schema representation, classifying the schema kind (pydantic, dataclass, typeddict, or json_schema), and generating name and description for tool construction. It supports heterogeneous schema types across multiple patterns.",
+      "evidence": [
+        {
+          "resource": "repo://libs/langchain_v1/langchain/agents/structured_output.py#L107-L193",
+          "version": "repo-lines-v1:sha256:3362103d065e36404882c2d050d110ab936fbaef42a6af8711e35c62a505963c:eyJzZWxlY3RlZExpbmVDb3VudCI6ODcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5YTRmMGQ5MjI5ZGZjYTRhYzUwOWU0NzQ5ZDI0YWJkYjEzODY0YjBhZWYyYjE1ZWJiZDk4OWQ1ODI2OGNkNTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1YWJhNDI4N2NkYjk1NjFkNGUxYjIyNDUzOGUyNTJhYWI0MDc0ZDE0MjI4Yjc2NDQ5MjBmZWQ1NTg5N2M1NDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc5OWJhM2QxMmYxMDk5NTEzYzhjNGE2MTY1N2E3MjUxNDFjNDViMTEzYWJlMWQwNjIyMzkwMjVmYTRmMDM2YjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc2MTlmYmNkMDIyMzI5NDQ3ODAwMmU4Zjg2ZmNlZWU3ZDgyYjc0OWFhM2M1ZjhhMDZmYjM3Y2JkMjBhOGY5MTQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0d0b99e947b048ccbe87f7db956ec13e",
+      "statement": "ToolStrategy enforces structured output by binding an artificial tool to the model and parsing tool call arguments. It supports configurable error handling via handle_errors (bool, str, Exception type, or Callable) to automatically retry on validation failure. Raw JSON schema dicts bypass validation and make handle_errors ineffective; Pydantic models, dataclasses, and TypedDicts enable full validation and retry.",
+      "evidence": [
+        {
+          "resource": "repo://libs/langchain_v1/langchain/agents/structured_output.py#L197-L269",
+          "version": "repo-lines-v1:sha256:9f8733c22124a56b194540c3f48085f82d030470ff8b8e285e59f067d1672029:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk2NDVhMGM4ZDU0YWQ4MjJjMTFmYWY2ZDg3NmJhZTkwZjdiNjE0NzAwNTM1MjgwZTc1ODQ4ZDBhZjI3YTcwYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc2MTlmYmNkMDIyMzI5NDQ3ODAwMmU4Zjg2ZmNlZWU3ZDgyYjc0OWFhM2M1ZjhhMDZmYjM3Y2JkMjBhOGY5MTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2Y2Y2Y2M1MTRjMzY1YzJjN2FmYjIzMDI0ZGJhY2Q4YTUwNzY2ZDI2NzZiNDU3MjU5MDdlNmYwMGI4MTkzZWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a010bfda5f594001a8a4718d7f02c7f5",
+      "statement": "ProviderStrategy delegates structured output to the model provider's native capabilities (e.g., OpenAI response_format with JSON Schema), eliminating artificial tool call overhead. The strategy constructs provider-specific kwargs via to_model_kwargs(), optionally requesting strict schema validation if the provider supports it.",
+      "evidence": [
+        {
+          "resource": "repo://libs/langchain_v1/langchain/agents/structured_output.py#L271-L315",
+          "version": "repo-lines-v1:sha256:55194f061562c152c2ae5db0a1fea11f21931a3ec8fca554c4c9ad8e05ef1339:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5YTRmMGQ5MjI5ZGZjYTRhYzUwOWU0NzQ5ZDI0YWJkYjEzODY0YjBhZWYyYjE1ZWJiZDk4OWQ1ODI2OGNkNTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc0OWFjMzE5MjUyODU3ZWZmMjI0ODc1MmQ3YzVmZWQ3OGZiZDQ3MGY1ZGFmNWUxNzY0ZGZjMGRmNDZkMzMxNGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4MzBlMTZiMWMxYWFmODIwNmY1NmM3NmM2MmE2OGQ3ODY5ZWM2MjY0MjZlYzI4MjdiZjQ3ZWRkZGUwMGRmZDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjMWYwMmZkN2VjMWQ0NjJjMGNiODE4Yjk0OGZmZTRmNzE1YjJjMmM0MzI2MzBjMjMyZGZlMzRkNDI3NDNmYTkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_22c5109f25ea4c62870606197cf81c1c",
+      "statement": "AutoStrategy auto-detects and selects the best strategy (ProviderStrategy or ToolStrategy) based on the model's capabilities at runtime, providing zero-friction schema binding across models with different native structured output support.",
+      "evidence": [
+        {
+          "resource": "repo://libs/langchain_v1/langchain/agents/structured_output.py#L458-L472",
+          "version": "repo-lines-v1:sha256:0a2cf0fddb144438a33c3f46fa2f3c578a10b89b003d4d441f7e5204112fe327:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiZjA5NDJjNTBkOWIzZGExOTk1MDczYzlkOTA4NjZjOGMzMGJmZjc3MzJlYzNlMWNmMGFiNDk4Yzg1OWZjZDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0NDBhZGQ3OGFlMmJlZmZlMmZkOTc5YTI4OGVmZDE5M2MwOTkyNmQ3ZmQ2YjQ3N2M5MTZhMDViMTEzZjgxYTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEwMDVmMzRlYmNmY2ZiZTZjYjNjODAxODg3YmJjZGQyYTJkYzRhOWRhN2YzMGUwYjM2YzNlNzJhNjdmZTBiN2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwN2RkNjc5OWVlZGRhZmI0Yzk3MjU5M2Q4NGEwYmFlN2JjNWEzNjRmNjVlNDVhY2RhYTIxNDY3NWYzMDc0ZTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_410e962e9a1740fba91b149f94f5e1ea",
+      "statement": "_parse_with_schema() is the core validation function used by ToolStrategy to parse tool arguments according to the schema kind (pydantic, dataclass, typeddict, or json_schema). It uses TypeAdapter for runtime validation of Pydantic models, dataclasses, and TypedDicts, returning validated instances; for JSON schemas it returns the raw dict without validation. It raises ValueError on parsing or validation failure.",
+      "evidence": [
+        {
+          "resource": "repo://libs/langchain_v1/langchain/agents/structured_output.py#L78-L104",
+          "version": "repo-lines-v1:sha256:9f193f45c8a2bbcc12a7d105c37a880149dac7c25d5f9b04f9575d6b9805ffba:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0NGIzZjliOTY3MGNlYzg0MDM0NGY0NjYyM2IxMjkzMDhkNTUwYzFiNTQ2YjllZjg4Y2ExYjNlOTg5ZjVkNWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiN2VjNTZiNTU2N2EyOTk5ZmJkZWM0NzhjMzRjYjQxYTI1YmQ3MmE0ZjI5NDExZmYyMGM3NGFkMjBlNzhjMWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE2MzE2MjEwYTE2YTEwMWU2MWIyYzUwZTRlNTM0NDc5ZmQ5NTUyNDZkMTI2NTM2ZTI2NDI0NjllYWNlOWQ3Y2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc2MTlmYmNkMDIyMzI5NDQ3ODAwMmU4Zjg2ZmNlZWU3ZDgyYjc0OWFhM2M1ZjhhMDZmYjM3Y2JkMjBhOGY5MTQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2fec08df1d5746ec9eda6c96e5ae5c64",
+      "statement": "StructuredOutputValidationError and MultipleStructuredOutputsError are specialized error types for ToolStrategy that indicate tool argument validation failure or multiple unexpected tool calls, respectively. Both inherit from StructuredOutputError and carry the ai_message, enabling integration with agent retry logic when handle_errors is enabled.",
+      "evidence": [
+        {
+          "resource": "repo://libs/langchain_v1/langchain/agents/structured_output.py#L36-L75",
+          "version": "repo-lines-v1:sha256:8a131eadf9d5ee730ba0931b207fbc4b94a030a9d1751356e9549880dbceb0f2:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcxMDMxYTdmMWVlMzQwZjU3N2FmMGJiOGU5NjBmNmFiODFhNGQyYmI0ZWViZmM1Mzg3MmNmNDNmYjFhNzliNjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiNDRlNTUzMzY1OWZmYzQxNTAwMzc4YWY0NWE5YTJhMzBkZDk3NTk1MTQ1NjMyN2Y3MWMyZDc4NWRiYmI0ZTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNhYWJhYzAxYTBiNDQwZDU2NzA4Y2RkOTBiOTljYzg4OGNmZTgyNWQ1ZTQ4M2Q2ZDQ2OWUyZDU2MmFkOWViZTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzYWMzOWZkYmEyM2FkMDg0ODRmZWVjZmNiMmY0NmI3ZWRjZmQ2MWIwOGYyMGIwMDA0Yjg0Y2U1ZTgwNTI3Y2YifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9bc436e5ccaf4a48ba447f946240bdc5",
+      "statement": "OutputToolBinding and ProviderStrategyBinding encapsulate schema metadata and parsing logic for runtime use in agent execution. OutputToolBinding creates a LangChain StructuredTool from a schema spec for ToolStrategy binding; ProviderStrategyBinding tracks native provider output schemas and parses AIMessage JSON according to the schema kind.",
+      "evidence": [
+        {
+          "resource": "repo://libs/langchain_v1/langchain/agents/structured_output.py#L318-L456",
+          "version": "repo-lines-v1:sha256:75542e7db53698891f106ce002bb65a04afa18403af477ce5c4a884969d6c9b4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJiNmZiYWUwYjkxZDQ0ZmMwZDQ5ZjVkZTY5MWRhNmZjNDMxZjI2MDEzNGJmNzMxZTBlMjFmNzY0ODA5NDMzNGNiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhZmU0ZDY3NTA0N2YwZWVmNmQ5ZGZlNmIyZDJhNTljZTQzNDZkMzJiMmE4ZjczOWI3YmFhZmZlNTBjNDJlYjE5IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJmODAzYzZkN2VmZTA3ODc5NDJkY2M5YWZlY2I2YjJmNjhiMjgyNDJjMDM1OTk0MzQyMWE2Mjk4NTE0NWJjMjVkIn0"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.0",
-    "at": "2026-10-25T08:23:03.589Z"
+    "at": "2026-10-28T08:19:50.216Z"
   }
 }

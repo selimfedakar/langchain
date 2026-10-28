@@ -1,11 +1,11 @@
 ---
 type: "Workflow"
-title: "Middleware: Extensible Request Processing"
-description: "Middleware system for composing agent behavior. Covers middleware interface, execution order, state management, and patterns for routing, logging, and tool control."
+title: "Middleware: Composable Agent Behaviors"
+description: "Middleware architecture for composing agent behavior through lifecycle hooks and request interception. Covers interface, execution model, state management, built-in implementations, and composition patterns for retries, validation, security, and control flow."
 tags: ["agents", "middleware", "composition", "hooks", "extensibility", "request-handling"]
 verified:
   - by: openwiki/0.5.0
-    at: 2026-10-25T08:23:03.589Z
+    at: 2026-10-28T08:19:50.216Z
 sources:
   - id: openwiki-source-07e634f5cd5f00c636010306
     resource: repo://libs/langchain_v1/langchain/agents/middleware/__init__.py
@@ -13,16 +13,16 @@ sources:
     resource: repo://libs/langchain_v1/langchain/agents/middleware/tool_error.py
   - id: openwiki-source-03e8ca0eebe37feda8566793
     resource: repo://libs/langchain_v1/langchain/agents/middleware/types.py
-generated: { by: "openwiki/0.5.0", at: "2026-10-25T08:23:03.589Z" }
+generated: { by: "openwiki/0.5.0", at: "2026-10-28T08:19:50.216Z" }
 ---
 
-# Middleware: Extensible Request Processing
+# Middleware: Composable Agent Behaviors
 
 Middleware in LangChain agents provides a composable system for intercepting and customizing agent behavior at multiple execution phases. Middleware enables cross-cutting concerns—logging, validation, caching, retries, security checks, and routing—without modifying core agent logic.
 
 Middleware operates by defining handlers for distinct phases:
-- **Lifecycle hooks** (`before_agent`, `after_agent`, `before_model`, `after_model`): Execute synchronously at state transition boundaries
-- **Wrapper handlers** (`wrap_model_call`, `wrap_tool_call`): Intercept actual LLM and tool invocations with handler callbacks
+- **Lifecycle hooks** (`before_agent`, `after_agent`, `before_model`, `after_model` and async variants): Execute at agent state transition boundaries, returning optional state updates or control flow commands
+- **Wrapper handlers** (`wrap_model_call`, `wrap_tool_call` and async variants): Intercept actual LLM and tool invocations with handler callbacks, enabling retries, caching, and request/response transformation
 
 Multiple middleware compose automatically, with the first in the list acting as the outermost layer, wrapping inner middleware in nested closures.
 
@@ -364,7 +364,7 @@ class RetryTrackingMiddleware(AgentMiddleware):
         return {"retry_count": state["retry_count"]}
 ```
 
-When multiple middleware have different schemas, they must be compatible (share common fields). The agent's final state schema is inferred from decorators or the first middleware that specifies one.
+When multiple middleware have different schemas, they must be compatible (share common fields and reducers). The agent's final state schema is inferred from decorators or the first middleware that specifies one. All custom state schemas must include the `messages` field with the `add_messages` reducer for compatibility with the agent framework.
 
 ### State Update and Merging
 
@@ -479,15 +479,18 @@ Each middleware can:
 
 For state-transition hooks, all middleware hooks run in order:
 
-```python
-before_agent 1, before_agent 2, before_agent 3
-  → model call
-before_model 1, before_model 2, before_model 3
-  → handler (model invocation)
-after_model 1, after_model 2, after_model 3
-  → tool calls
-...
-after_agent 1, after_agent 2, after_agent 3
+```
+before_agent (all middleware 1→N)
+  ↓
+before_model (all middleware 1→N)
+  ↓
+wrap_model_call (nested: outer→inner→handler→inner→outer)
+  ↓
+after_model (all middleware 1→N)
+  ↓
+wrap_tool_call (nested: outer→inner→handler→inner→outer)
+  ↓
+after_agent (all middleware 1→N)
 ```
 
 State updates are applied cumulatively. If multiple middleware return state updates, later ones **overwrite** earlier ones for the same key (except for **messages**, which merge).
@@ -603,20 +606,49 @@ class RateLimitMiddleware(AgentMiddleware):
 
 LangChain provides production-ready middleware for common needs:
 
-- **`ModelRetryMiddleware`**: Automatic retry with exponential backoff for model calls.
-- **`ToolRetryMiddleware`**: Automatic retry for failed tool executions.
-- **`ToolErrorMiddleware`**: Convert tool exceptions to error `ToolMessage`s (opt-in per exception).
-- **`ModelCallLimitMiddleware`**: Enforce maximum model calls per agent run.
-- **`ToolCallLimitMiddleware`**: Enforce maximum tool calls per agent run.
-- **`ToolErrorMiddleware`**: Handle and format tool execution errors.
-- **`HumanInTheLoopMiddleware`**: Interrupt execution for human review/approval.
-- **`LLMToolSelectorMiddleware`**: Use a smaller LLM to filter to the most relevant tools.
-- **`ModelFallbackMiddleware`**: Fallback to alternative models on primary model failure.
-- **`PIIMiddleware`**: Detect and redact personally identifiable information.
-- **`ShellToolMiddleware`**: Sandboxed shell execution with resource limits.
-- **`SummarizationMiddleware`**: Summarize message history to manage context window.
+### Retry and Error Handling
 
-For details, consult the API documentation and use examples in the middleware package.
+- **`ModelRetryMiddleware`**: Automatic retry with configurable exponential backoff for model call failures. Supports custom exception filtering and failure handlers.
+  
+- **`ToolRetryMiddleware`**: Automatic retry for failed tool executions with exponential backoff. Can target specific tools and configure retry conditions.
+
+- **`ToolErrorMiddleware`**: Convert tool execution exceptions to error `ToolMessage`s (opt-in per exception). Unhandled exceptions propagate; Langgraph control-flow exceptions always propagate.
+
+- **`ModelFallbackMiddleware`**: Fallback to alternative models on primary model failure. Useful for cost optimization or redundancy.
+
+### Execution Limits and Control
+
+- **`ModelCallLimitMiddleware`**: Enforce maximum model calls per agent run (thread-level or run-level). Supports both error-on-limit and graceful-exit behaviors.
+
+- **`ToolCallLimitMiddleware`**: Enforce maximum tool calls per agent run. Prevents runaway agent loops.
+
+- **`HumanInTheLoopMiddleware`**: Interrupt execution for human review/approval at specified decision points.
+
+### Tool and Request Management
+
+- **`LLMToolSelectorMiddleware`**: Use a smaller LLM to filter available tools to the most relevant ones before each model call. Reduces token usage and improves model focus.
+
+- **`ShellToolMiddleware`**: Sandboxed shell execution with resource limits (Docker or local host sandboxing policies).
+
+- **`FilesystemFileSearchMiddleware`**: Integrated file search and retrieval for document-based workflows.
+
+- **`ProviderToolSearchMiddleware`**: Search and select tools from provider-managed tool registries.
+
+### Data Protection and Context Management
+
+- **`PIIMiddleware`**: Detect and redact personally identifiable information (emails, credit cards, IPs, URLs, phone numbers) from streams and stored messages.
+
+- **`SummarizationMiddleware`**: Summarize old message history to manage context window and reduce token usage in long conversations.
+
+- **`ContextEditingMiddleware`**: Manipulate tool usage history in state (e.g., clear specific tool calls before sending to model).
+
+### Other Specialized Middleware
+
+- **`TodoListMiddleware`**: Track and manage a task list within the agent state.
+
+- **`LLMToolEmulator`**: Emulate tool calls with an LLM when actual tool execution is unavailable.
+
+For details, consult the API documentation and examples in each middleware class's docstring.
 
 ## Error Handling and Propagation
 

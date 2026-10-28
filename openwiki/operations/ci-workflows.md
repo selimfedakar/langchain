@@ -1,7 +1,11 @@
 ---
 type: "Reference"
-title: "Ci workflows"
-openwiki_generated: true
+title: "CI/CD Workflows: Automation and Release Process"
+description: "GitHub Actions workflows for PR CI, release automation, version management, and deployment. Covers intelligent change detection, matrix testing, dependency validation, and deployment procedures to PyPI."
+tags: [ci-cd, github-actions, testing, release-automation, version-management, deployment, python]
+verified:
+  - by: openwiki/0.5.0
+    at: 2026-10-28T08:19:50.216Z
 sources:
   - id: openwiki-source-34e57b5a3a0c875639ab72a7
     resource: repo://.github/scripts/check_diff.py
@@ -15,12 +19,10 @@ sources:
     resource: repo://.github/workflows/openwiki-update.yml
   - id: openwiki-source-f8781d847f6481a966a44a68
     resource: repo://.github/workflows/pr_labeler.yml
-generated: { by: "openwiki/0.5.0", at: "2026-10-26T08:33:32.568Z" }
-verified:
-  - by: openwiki/0.5.0
-    at: 2026-10-26T08:33:32.568Z
+  - id: openwiki-source-4eee829acf1dd31daa110f1a
+    resource: repo://.github/workflows/refresh_model_profiles.yml
+generated: { by: "openwiki/0.5.0", at: "2026-10-28T08:19:50.216Z" }
 ---
-
 
 ## Overview
 
@@ -33,6 +35,8 @@ The system comprises:
 1. **PR CI (`check_diffs.yml`)** — Runs on every PR/push to main, detects changed files, and dynamically selects affected test suites
 2. **Scheduled Integration Tests (`integration_tests.yml`)** — Daily remote API testing with live credentials to catch breaking changes in external dependencies
 3. **Release Workflow (`_release.yml`)** — Publishes to PyPI, validates versions, tests against prior published partners, and requires environment approval
+4. **Model Profile Refresh (`refresh_model_profiles.yml`)** — Daily update of model configuration metadata from models.dev
+5. **OpenWiki Documentation (`openwiki-update.yml`)** — Daily automatic documentation updates using Claude
 
 ---
 
@@ -42,7 +46,7 @@ The system comprises:
 
 The primary PR CI workflow runs on every pull request and push to master. Its core responsibility is **detecting which packages changed and mapping those changes to appropriate test configurations**.
 
-**Trigger:** Pull requests, merges to master, merge queue participation
+**Trigger:** Pull requests, merges to master, merge queue participation  
 **Key Features:**
 - Cancels redundant runs (concurrency with `cancel-in-progress: true`)
 - Reads-only permission level for security
@@ -152,7 +156,7 @@ Once the `build` job outputs the matrices, seven jobs run in parallel (if not em
 
 Automatically applies labels to PRs based on contributor type, file changes, PR size, and title patterns.
 
-**Trigger:** PR opened, synchronized, reopened, or edited
+**Trigger:** PR opened, synchronized, reopened, or edited  
 **Key Security:**
 - Uses `pull_request_target` to avoid checking out untrusted code
 - Generates GitHub App token only for membership checks
@@ -276,8 +280,9 @@ Manually triggered workflow that builds, tests, and publishes LangChain packages
 3. Check PyPI: version must not already exist (fails if duplicate)
 4. Build distribution with `uv build` (creates `.whl` and `.tar.gz`)
 5. Upload artifact for downstream jobs
+6. Compute and verify SHA256 checksums for artifact integrity
 
-**Outputs:** `pkg-name` (e.g., `langchain-openai`), `version` (e.g., `0.1.5`)
+**Outputs:** `pkg-name` (e.g., `langchain-openai`), `version` (e.g., `0.1.5`), `dist-sha256sums`
 
 **Safety Gates:**
 - Fails if requested release version doesn't match pyproject.toml
@@ -354,9 +359,10 @@ Manually triggered workflow that builds, tests, and publishes LangChain packages
 
 **Steps:**
 1. Download built wheel from artifact
-2. Publish to `test.pypi.org` with `--skip-existing` (allows re-runs without failure)
-3. Prints hash and verbose output for audit trail
-4. Disables attestations (workaround for gh-action-pypi-publish v1.11.0+)
+2. Verify SHA256 checksums against build job output
+3. Publish to `test.pypi.org` with `--skip-existing` (allows re-runs without failure)
+4. Prints hash and verbose output for audit trail
+5. Disables attestations (workaround for gh-action-pypi-publish v1.11.0+)
 
 #### 5. Test Prior Published Packages Against New Core
 
@@ -416,8 +422,9 @@ Manually triggered workflow that builds, tests, and publishes LangChain packages
 
 **Steps:**
 1. Download wheel artifact
-2. Publish to `pypi.org` using `pypa/gh-action-pypi-publish` action
-3. Prints hash and verbose output
+2. Verify SHA256 checksums
+3. Publish to `pypi.org` using `pypa/gh-action-pypi-publish` action
+4. Prints hash and verbose output
 
 #### 8. Mark Release Job (`mark-release`)
 
@@ -478,18 +485,66 @@ The release workflow uses **layered safety gates**:
 
 ---
 
-## Matrix Testing & Performance Benchmarks
+## Model Profile Refresh
 
-### CodSpeed Benchmarks
+### Workflow: `refresh_model_profiles.yml`
 
-For performance-critical packages, the `build` job includes CodSpeed benchmark configurations:
+Automatically updates model profile metadata from models.dev for in-monorepo partner integrations. Runs daily by default, or on manual trigger with optional provider filter.
 
-- **libs/core**: Tested with walltime mode (default CPU simulation too slow)
-- **libs/partners/fireworks**: Walltime mode (~328s under CPU simulation)
-- **libs/partners/openai**: Walltime mode (6 benchmarks, ~6 min under CPU simulation)
-- Other packages: CPU simulation mode
+**Trigger:**
+- Daily at 8:00 AM UTC (scheduled)
+- Manual via `workflow_dispatch` with optional provider filter
 
-Each package runs benchmarks on Python 3.13 with `uv run pytest --benchmark-compare ...`.
+**Key Features:**
+- Uses `langchain-profiles` CLI to fetch latest model metadata
+- Creates/updates a single PR with any changes (reuses fixed branch)
+- Supports filtering to specific providers or all
+
+**Supported Providers:**
+- anthropic, deepseek, fireworks-ai, groq, huggingface, mistral, openai, openrouter, perplexity, xai
+
+**Process:**
+1. Resolve provider filter from dropdown or override
+2. Runs reusable `_refresh_model_profiles.yml` workflow
+3. Installs `langchain-profiles` CLI from `libs/model-profiles`
+4. Executes `langchain-profiles refresh` for each provider
+5. Writes updated `_profiles.py` files
+6. Creates PR with changes (overwrites previous PR on same branch)
+
+**Manual Run Options:**
+- Select single provider from dropdown
+- Use `providers-override` for free-text provider IDs (comma-separated)
+- Accepts both models.dev IDs and package aliases (e.g., `fireworks`, `mistralai`)
+
+---
+
+## OpenWiki Documentation
+
+### Workflow: `openwiki-update.yml`
+
+Automatically generates and updates architecture documentation using Claude, with changes submitted as pull requests.
+
+**Trigger:**
+- Daily at 8:00 AM UTC (scheduled)
+- Manual via `workflow_dispatch`
+
+**Process:**
+1. Check out repository with full commit history (required for `openwiki code --update` to compute diffs)
+2. Install OpenWiki 0.5.0 CLI and optional Mermaid visualization support
+3. Run `openwiki code --update` with Anthropic API
+   - Uses Claude Haiku 4.5 model
+   - Authenticates with `ANTHROPIC_API_KEY`
+   - Reads workspace configuration from OpenWiki directory
+4. Remove transient OpenWiki state file (`.run.json`)
+5. Create pull request with documentation changes
+   - Stages changes to `openwiki/` directory and `AGENTS.md`
+   - Sets branch to `openwiki/update` (fixed branch, updates supersede previous runs)
+   - Intentionally preserves only pages completed before failures (allows partial progress)
+
+**Environment:**
+- Authenticates to LangSmith for connector access via `OPENWIKI_LANGSMITH_API_KEY`
+- Optional LangSmith tracing of the workflow itself (`LANGSMITH_API_KEY`, project: `openwiki`)
+- Supports multiple LangSmith workspaces via `OPENWIKI_LANGSMITH_API_KEY_2`, `_3`, etc.
 
 ---
 
@@ -511,12 +566,37 @@ Each package runs benchmarks on Python 3.13 with `uv run pytest --benchmark-comp
 - **`_compile_integration_test.yml`** — Integration test compilation (imported by check_diffs.yml)
 - **`_test_vcr.yml`** — VCR cassette playback tests (imported by check_diffs.yml)
 - **`_release.yml`** — Release workflow (manually triggered or called by other workflows)
+- **`_refresh_model_profiles.yml`** — Reusable model profile refresh (can be called by external repos)
 
 ### Configuration
 
 - **`.github/scripts/pr-labeler-config.json`** — Maps file patterns to PR labels
 - **Extended test dependencies:** `<package>/extended_testing_deps.txt` — Additional dependencies for extended tests
 - **Minimum versions:** Declared in `pyproject.toml` under `[dependency-groups]` with PEP 440 constraints
+
+---
+
+## Dependency and Lock File Management
+
+### Lock File Updates
+
+- Each package has its own `uv.lock` file tracking transitive dependencies
+- Lock files are committed to git to ensure reproducible builds
+- CI uses `UV_FROZEN=true` to prevent lock file modifications
+- Manual `uv sync` commands during development respect the committed lock
+
+### Version Pinning Strategy
+
+- **Runtime dependencies:** Declared in `pyproject.toml` under `[project]` with relaxed version constraints (e.g., `langchain-core>=0.1.0`)
+- **Test dependencies:** Declared in `[dependency-groups.test]` with appropriate constraints
+- **Pydantic handling:** Packages compatible with Pydantic 2.x specify `pydantic>=2.0` with maximum tested version tracked in `uv.lock`
+
+### Dependency Validation in Release
+
+1. **Prerelease check:** Stable releases cannot depend on prerelease versions (alpha/beta/dev)
+2. **Minimum version testing:** Release validates package works with minimum declared dependency versions
+3. **Backward compatibility:** Core releases test against latest published partner versions
+4. **Transitive prerelease:** `allow-prereleases` flag permits prerelease transitive dependencies only for prerelease package releases
 
 ---
 
@@ -540,6 +620,7 @@ Each package runs benchmarks on Python 3.13 with `uv run pytest --benchmark-comp
 | Min version tests fail | Minimum version doesn't satisfy constraints | Fix test, update constraints, or bump minimum version |
 | Partner integration tests fail | Partner API changed | Update partner integration code, or skip check with `skip-prior-published-package-checks` |
 | External project fails | External project broken by API change | Fix API or coordinate release with external project |
+| Checksum mismatch | Downloaded artifact differs from build | Retry job; indicates potential cache corruption |
 
 ---
 
@@ -557,10 +638,11 @@ Each package runs benchmarks on Python 3.13 with `uv run pytest --benchmark-comp
 
 1. **Keep `check_diff.py` in sync** — Add new packages/directories to `LANGCHAIN_DIRS` or partners detection
 2. **Monitor flaky tests** — Use `@pytest.mark.flaky` for known intermittent failures
-3. **Update release options** — When adding a new package, update `_release.yml` dropdown options
+3. **Update release options** — When adding a new package, update `_release.yml` dropdown options and `integration_tests.yml`
 4. **Watch secret rotation** — API keys in partner integration tests rotate; update repository secrets when credentials expire
 5. **Review PR labeling rules** — Keep `pr-labeler-config.json` in sync with repository structure
 6. **Document release bypasses** — When using `dangerous-nonmaster-release` or `skip-prior-published-package-checks`, document why in PR description
+7. **Model profile sync** — Add new provider integrations to `refresh_model_profiles.yml` provider list
 
 ---
 
@@ -595,3 +677,18 @@ Each package runs benchmarks on Python 3.13 with `uv run pytest --benchmark-comp
 ### Can I release from a branch other than master?
 
 **Yes, but dangerous:** Use `dangerous-nonmaster-release=true`. This should only be used for critical hotfixes. Always create a PR to master afterward to merge your hotfix back to main.
+
+### Model profile refresh fails with "unknown provider"
+
+**Cause:** Provider ID not in the `ALL_PROVIDERS` list in `refresh_model_profiles.yml`.
+
+**Fix:** Add provider to both the dropdown options and the `ALL_PROVIDERS` JSON array, ensuring package alias normalization is handled.
+
+### OpenWiki update fails to create PR
+
+**Cause:** 
+- Missing or invalid API keys (`ANTHROPIC_API_KEY`)
+- LangSmith connector authentication failed (`OPENWIKI_LANGSMITH_API_KEY`)
+- No documentation pages exist to update
+
+**Debug:** Check workflow logs for error messages; verify secrets are set in repository settings.

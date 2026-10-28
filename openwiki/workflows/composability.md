@@ -2,10 +2,10 @@
 type: Workflow
 title: "Composability: Building Modular Systems"
 description: "Composition patterns for building complex applications from simple, reusable components. Covers Runnable piping, component interfaces, and composability boundaries."
-tags: [composition, runnables, lcel, modular, piping, parallel, branching, fallback]
+tags: [composition, runnables, lcel, modular, piping, parallel, branching, fallback, retry, concurrency]
 verified:
   - by: openwiki/0.5.0
-    at: 2026-10-25T08:23:03.589Z
+    at: 2026-10-28T08:19:50.216Z
 sources:
   - id: openwiki-source-65071982a626569c8820a34b
     resource: repo://libs/core/langchain_core/runnables/__init__.py
@@ -17,7 +17,7 @@ sources:
     resource: repo://libs/core/langchain_core/runnables/config.py
   - id: openwiki-source-f9f4c1dc4f9cdf80d824ce15
     resource: repo://libs/core/langchain_core/runnables/fallbacks.py
-generated: { by: "openwiki/0.5.0", at: "2026-10-25T08:23:03.589Z" }
+generated: { by: "openwiki/0.5.0", at: "2026-10-28T08:19:50.216Z" }
 ---
 
 # Composability: Building Modular Systems
@@ -115,7 +115,7 @@ Schemas enable:
 
 The **pipe operator** chains Runnables sequentially. Each output becomes the next input.
 
-**Location**: `repo://libs/core/langchain_core/runnables/base.py#L648-L722`
+**Location**: `repo://libs/core/langchain_core/runnables/base.py#L649-L723`
 
 ```python
 from langchain_core.runnables import RunnableLambda, RunnableSequence
@@ -291,7 +291,7 @@ result = router.invoke({"query": "find restaurants near me"})  # Uses search_cha
 
 **RunnableWithFallbacks** tries a primary Runnable, then fallbacks in order until one succeeds.
 
-**Location**: `repo://libs/core/langchain_core/runnables/fallbacks.py#L37-L590`
+**Location**: `repo://libs/core/langchain_core/runnables/fallbacks.py#L37-L212`
 
 ```python
 from langchain_openai import ChatOpenAI
@@ -358,6 +358,8 @@ result = model.invoke("Hello")
 - **Attempt tracking**: Tags callback runs as `retry:attempt:N`.
 - **Batch retry**: In batch mode, retries only failed inputs.
 - **Stream limitation**: Streaming is not retried (ambiguous semantics).
+
+**Location**: `repo://libs/core/langchain_core/runnables/base.py#L2102-L2167`
 
 ## Component Interface Design
 
@@ -551,6 +553,111 @@ router = RunnableBranch(
 chain = classifier | router
 ```
 
+## Parallel Execution and Concurrency Control
+
+### Concurrency Limits
+
+Control how many operations run in parallel using `max_concurrency` in the config:
+
+```python
+from langchain_core.runnables import RunnableConfig
+
+# Limit parallel operations to 3
+config = RunnableConfig(max_concurrency=3)
+
+# Batch processing with concurrency limit
+results = chain.batch(
+    inputs,
+    config=config,
+)
+
+# Async batch with concurrency limit
+results = await chain.abatch(
+    inputs,
+    config=config,
+)
+```
+
+**Where max_concurrency applies**:
+
+- **RunnableParallel**: Limits concurrent branch execution
+- **Batch operations**: Limits parallel invocations in `batch()` and `abatch()`
+- **Thread pools**: Constrains executor worker threads in sync operations
+- **Asyncio gather**: Bounds concurrent tasks in async operations
+
+**Location**: `repo://libs/core/langchain_core/runnables/config.py#L103-L107`
+
+### Execution Comparison
+
+**Sync batch** (default uses ThreadPoolExecutor):
+
+```python
+inputs = [
+    {"topic": "AI"},
+    {"topic": "ML"},
+    {"topic": "DL"},
+]
+
+# Executes in parallel thread pool
+results = chain.batch(inputs, config={"max_concurrency": 5})
+```
+
+**Async batch** (uses asyncio.gather with semaphore):
+
+```python
+# Executes with async concurrency control
+results = await chain.abatch(inputs, config={"max_concurrency": 5})
+```
+
+## Error Propagation and Fallback Patterns
+
+### Exception Handling in Parallel
+
+By default, RunnableParallel raises the first exception encountered:
+
+```python
+parallel = RunnableParallel(
+    task_a=may_fail_a,
+    task_b=may_fail_b,
+)
+
+try:
+    result = parallel.invoke(input)
+except Exception as e:
+    # One of task_a or task_b raised
+    pass
+```
+
+### Selective Exception Handling
+
+Use fallbacks to handle specific exception types:
+
+```python
+# Only handle ValueError, let other exceptions propagate
+chain = risky_step.with_fallbacks(
+    [safe_fallback],
+    exceptions_to_handle=(ValueError,),
+)
+```
+
+### Exception Injection for Adaptive Recovery
+
+Pass exception info to fallbacks for context-aware recovery:
+
+```python
+# Fallback receives {"input": original_input, "error": exception}
+chain = risky_step.with_fallbacks(
+    [adaptive_fallback],
+    exception_key="error",  # Exception passed as "error" key
+)
+
+def adaptive_fallback(inputs: dict) -> str:
+    if isinstance(inputs.get("error"), TimeoutError):
+        return "slow_fallback(inputs['input'])"
+    else:
+        return "fast_fallback(inputs['input'])"
+```
+
 ## Composability Boundaries
 
 When to stop composing and create a new abstraction:
@@ -661,6 +768,8 @@ All intermediate steps receive merged config:
 - Callbacks receive hooks for all steps.
 - `max_concurrency` applies to batch and parallel operations.
 
+**Location**: `repo://libs/core/langchain_core/runnables/config.py#L57-L129`
+
 ## Debugging and Visualization
 
 ### Implicit Debugging
@@ -713,3 +822,5 @@ graph.draw_mermaid_png(outfile="chain.png")  # Mermaid diagram
 6. **Extract boundaries**: Create named subchains for readability and reusability.
 7. **Test components independently**: Unit-test individual Runnables before composition.
 8. **Monitor execution**: Use callbacks and debugging to understand production behavior.
+9. **Control concurrency**: Use `max_concurrency` for resource-constrained environments.
+10. **Handle errors gracefully**: Combine retry and fallback patterns for resilience.

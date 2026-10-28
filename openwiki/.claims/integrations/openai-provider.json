@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:19ef3a12475cc5a9d274c296ec104460d8e895a0a37e0e93c668957b55bf0f71",
+  "pageVersion": "sha256:9fb1cef479907afd49d81872c5baa482b77076f6e04bc0f4e821ef8a9604fd89",
   "claims": [
     {
       "id": "claim_f1104a8334664647842619daa7f61e83",
@@ -193,10 +193,66 @@
           "version": "repo-lines-v1:sha256:7665429e5b049b6175a1d87697d86743ca08a66669c13a2e4b060bc0b5c3701e:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDA2ZDkxZjEwZDZlZmMzMjI3ZTlhZWQ2OGY5Yzg3ODkxMTk1NmM2YmM0Nzc0NmUyZmU0N2RhNmU0ZDE2ZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyYWIwOTBiY2QxNjIwZmE2MmVhZWUxNTdhNzRmY2E2MzVhYTI5ZTEyY2JmZmQ2MThiNTc5MmQ4N2JjMDNhM2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2NGY2MThhMjg0NjkxYzE4NTQyNDgxZDE3MDBjMDUxNGUyNzg3ZTU1OGM4OGMzYjkxYTllYTlkZThhMDkwN2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5YWEzZmM5ZTU3ZGVkYmQyNTZiNjBjYzRiNGFkZTg5YjdiN2NhOThmMmUyYTkyZTE5ZTk5MTE0MTIzN2U1ZTkifQ"
         }
       ]
+    },
+    {
+      "id": "claim_9894ea3fbb62419e947b658e13cada32",
+      "statement": "AzureChatOpenAI extends BaseChatOpenAI with Azure-specific deployment handling, API versioning, and authentication; accepts azure_endpoint (resource URL), azure_deployment (model deployment name), api_version (REST API version distinct from model version), and supports multiple auth methods: API keys (AZURE_OPENAI_API_KEY), Azure AD tokens (AZURE_OPENAI_AD_TOKEN), token providers (azure_ad_token_provider, azure_ad_async_token_provider), and automatic workload identity when AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_FEDERATED_TOKEN_FILE are set; applies model name parameter for token counting and tracing (does not affect completion); disables parallel_tool_calls by default unless model_name='gpt-4o'.",
+      "evidence": [
+        {
+          "resource": "repo://libs/partners/openai/langchain_openai/chat_models/azure.py#L40-L58",
+          "version": "repo-lines-v1:sha256:fd57b2a2e14c136e6b0d6472865432f373d1b8d3d0ab9955e58f41603816e15f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiNDk2YjgzYThiNmNlNmYyYzVmYmU2MGU4NDdlNzc2ODhkYzdkNDViOWUzY2NjNWJmYzA3ODczNzc4ZGE2YWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyNWJmY2FkZTZmY2U0Y2U5Y2Q4ZWI2OWRkOTY5N2JjOTVkZjYzYmI0YjBiNGNkZjIxMDc3NGE4MjBhZDAzMmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5OGIwNjNkOWI0N2U2NTM3OTYyNTU3MmNjZTE5NzY2OWQ1NzY3ZTEyYzE4YmUwNzU2NTJiOGNkOTgxY2U4ZDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE3ODU3ODc5ZWZiZWUzYzBiMjFmOGM1YTMwMWVlNmU1NDQ5NGEyNTdkYWUwN2Y3OWYyZDA0NTkzOTQxZjhlNjQifQ"
+        },
+        {
+          "resource": "repo://libs/partners/openai/langchain_openai/chat_models/azure.py#L492-L560",
+          "version": "repo-lines-v1:sha256:680a92c26b5b321572eee5d6024bf44263c66f8bd7c3daed269fff90f4f47e2a:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyMDIwOGNhMGUyOWU4YTc3Y2NmNzUxOTBkYTdmNDdhMGQ1ZDExZGNkODIxYTk5YzFiYmI4OGZkM2NmOTA0ZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1MWRhNWEyNDNiMmYxNmI0YmIwZmQ3ZTNlMGIwODk1NmVkYzYxMzBkNDk4ODk1NDFlYzBhNjQ5Y2NlNGMzM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIzN2Q0NDFiODg1Yzc3OWI2NmYyY2I5MWRhZWE2ODVjYzhmMDE3NWMzMDJiN2EzN2QzOWJiNjQwNjk1M2ZhNDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5NGYyYmU4NTBjNGRkZTFlZTI5MWJhNjc3NjE1NzliOWIwNWU3OTcyZGQ2NzViNTc1NTRhYTM0ZjkzZTA2MTIifQ"
+        },
+        {
+          "resource": "repo://libs/partners/openai/langchain_openai/chat_models/azure.py#L627-L760",
+          "version": "repo-lines-v1:sha256:0457f79a7bd2ffd4a067e249d83faea8af1d774ef18d931d83695bdd92b1b6aa:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxZWYxY2RkMGY1NzQzM2NlNTA3NzkwNzIyZTJmNTFkOTczNTZjYmZmYTdiMjRkZDdjYTEzNDQ4MzJkNGU1MjQ4IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0ZGEzNGUwMWNlMzU1Mzg5ZGRlN2JiNGM3MDU4YTMyZTMwMmJiOGUzYjMwZjk5NDg3OWM1NDY4NGIwMDFlYzM5IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJmZGUxOGNiNThkMjAwYTlkZTY5MGI0MTI3MDJhM2Q0NzM2YWQ0NDBjZDE5OGVmNzE0YTZlNTY5ODk5Mzk1MDgyIn0"
+        },
+        {
+          "resource": "repo://libs/partners/openai/langchain_openai/chat_models/azure.py#L65-L127",
+          "version": "repo-lines-v1:sha256:df6b5174f2cd65fd8c9b4ca3b28f560b1ea8f7f30674b19de2315ed34d74fb1c:eyJzZWxlY3RlZExpbmVDb3VudCI6NjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlNzllYTJiMDA4NDM1NjlmOGJjZDMwY2IwNWQ0NTE4ZGQxMThlMWUxOGRjYTBkYTA4NWFiODhhNmIxYWEzMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE2ODVjNmRmMDBmNzZhYzBiYWM3ODYyMDRlZjIxMzFiYmNmMzY2NzJhMDc4NWExY2Y5ZTE2OGM5NjU3NzM0NmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRiYThhYjg4ZmQyM2UxNmU0NWViMzRjMzRhZTUwNDFjNzUzY2UzMjI2OTEyMDA3ZjkxNzU4MjM2ZTNkMDY2M2EifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_07b00013df4f4679985a352d3a351e99",
+      "statement": "Azure OpenAI includes content filtering that reports results in response_metadata['content_filter_results'] with keys for hate, self_harm, sexual, violence; when a response is filtered (finish_reason='content_filter'), _create_chat_result() raises ValueError with message 'Azure has not provided the response due to a content filter being triggered'; prompt_filter_results also appear in llm_output.",
+      "evidence": [
+        {
+          "resource": "repo://libs/partners/openai/langchain_openai/chat_models/azure.py#L822-L860",
+          "version": "repo-lines-v1:sha256:001cd3313f51d8add48f1c8ae38609d14cac603b708d6ffc8b340e9c74a1ac5e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1OTIxMjg3OTA4Y2FhN2ZhODg2OWFhNTNlNzM5OWUyOGEwNjRiMjgzYjdkYTUzYzg1ZTMyNTI1NTQzNWQxNDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlZmU3YzYyZjliOGZhMTk5ZGJiOWVlYjQ4MmQ2ZWNmZTNkYWM3OTUxNWE0OGJiMWJkZGM5MTZlNmVhNGU3MjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEwZmUyNzBiYmYwNzVhNzYxYjNlMDU5YmQ5YTFlYzQ3OGZlNzg0ODBhMmJhMGJjY2Q2ZjU1NGY3ZDliYTVlNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkYjlmM2E4NmRlMTA4YTAwN2YzNWQxZjVlZWE4ZGM2ZmVmY2EyMzIyZjgyYTZmMGIzNDhhNWFkMGQ1MTljOWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c8b3b4330f274f56aa2a9ea53381bd2f",
+      "statement": "with_structured_output() in BaseChatOpenAI defaults to method='function_calling' (not 'json_schema'); 'function_calling' method uses bind_tools() internally and works with most models (GPT-3.5+); 'json_schema' uses OpenAI's Structured Output API and requires models supporting structured output (GPT-4 Turbo+, GPT-4o, gpt-5.x); method='json_mode' ensures JSON format without schema enforcement.",
+      "evidence": [
+        {
+          "resource": "repo://libs/partners/openai/langchain_openai/chat_models/base.py#L2620-L2622",
+          "version": "repo-lines-v1:sha256:7a2c6dd2f7c96da5606bf6a0a5e8e22ea13a79e750c5d04440caafa6cbb400a6:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTg3ZWE0ZWVkZDMwM2Y0MmRhMzI5NDYwMmRkYWNjMzQ5MjFjMzM0MTJkMDRmNWRmOWI0N2IwMGIzZDM0ZDNmNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmYwOWRiNTE0MDRkOGNhN2FmN2UzNmIyODNhZWZhOTNmOWI4YTFmNDBjYWM1MGUzYTk2MjQ3MGY0MzA2ZGQ2NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmZhYzI0NWE1YjA2ZDhlZjRlZGFiNzJmOTI2MzhjNzEwNjRkMzIzZThmMjkyODgwNWFmYmE5MjM2ZWMxNDFjYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODViNGI0NzNlODlkY2EwMTUzNDdlMTdiZmI3MTU5YTUzOWVmMjgyZjRkMjllMDcwYmU3NTMxZDliYTM4ZDA0YSJ9"
+        },
+        {
+          "resource": "repo://libs/partners/openai/langchain_openai/chat_models/base.py#L2786-L2868",
+          "version": "repo-lines-v1:sha256:30e33ec5215c84904b142c078f11c3b55d6952b59bf0c9a3bc3c1d7441ab377e:eyJzZWxlY3RlZExpbmVDb3VudCI6ODMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxNTc2ZmQ5ODI2YzU4ZjlhMGNhZDMwYTc0NzIzNzNkZmI1MWY2YjQwMjRjMThjNTllMGE4ZjFiM2EzOTBlY2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0Y2M4MjllNjExZDM0YTM0NThjMTRjMjExZDNlNWE0NGM0M2QzM2RlNjdkOThlOGNjNmVlYzYwZTUzZDYxMjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmNzZjODVjMWE2ZDI0NGZkNjlhNDNlN2ZjYzhiY2YzMDI2YWZjOWI2YzlmYzc3M2FjN2EzNDBhMTE2OTJjOGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2bfb0e763e1a485abe92169ce6a67642",
+      "statement": "validate_temperature() enforces model-specific temperature constraints: o1 models default to temperature=1 if not provided; gpt-5 models (non-chat) without reasoning_effort='none' or reasoning.effort='none' require temperature=1 or unset (non-1 values are silently removed); gpt-5-chat models allow any temperature.",
+      "evidence": [
+        {
+          "resource": "repo://libs/partners/openai/langchain_openai/chat_models/base.py#L1350-L1380",
+          "version": "repo-lines-v1:sha256:53b1aa5bdcce24d6da13312962e7b34db97824829e860c929ee90188dfc876be:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1NWQzZjRmNmJlNzRjOTY4MjViZmUxZTVkZGZjMTk2MjI1ZWRlZTBiM2FkZDU4YzYzMjhjMTQ4YWNiNmUyMTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhYWEzNzA3NGNkY2ZmMmU2MzY0ZWQ3MDhhZjk4MDBlMjI0YmQzMDUxMzc0ZmNmMTI4YzZlNDg3MjM3ODc0YzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQxZjliNjc5ZDFhZjI0N2FkMTRlNjQ1NGRlMDAxZDdhZTg1Y2NiMTllNzk5ZDJhMzE0Mjg5OWI2MDkxNjE4NTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdhYzdiOTg0YTIyZWFjMWViYTcyNmQyZTliNzI2ZGVlY2EwZjViN2ExZDBhYTM1MDY3M2ZkMDhiMGFmZGQwZjMifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.0",
-    "at": "2026-10-25T08:23:03.589Z"
+    "at": "2026-10-28T08:19:50.216Z"
   }
 }

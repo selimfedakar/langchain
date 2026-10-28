@@ -3,9 +3,6 @@ type: "Developer Tools & Commands"
 title: "Development Commands and Local Setup"
 description: "Quick reference for uv, make, lint, test, and type-checking commands in the LangChain monorepo, including environment setup, pre-commit hooks, and testing workflows."
 tags: [development, build, testing, linting, typing, uv, make, pre-commit, local-setup]
-verified:
-  - by: openwiki/0.5.0
-    at: 2026-10-25T08:23:03.589Z
 sources:
   - id: openwiki-source-4d1645cb6317345817452838
     resource: repo://.pre-commit-config.yaml
@@ -21,7 +18,10 @@ sources:
     resource: repo://libs/Makefile
   - id: openwiki-source-a6e669bb11f217c6fbd06670
     resource: repo://libs/partners/anthropic/Makefile
-generated: { by: "openwiki/0.5.0", at: "2026-10-25T08:23:03.589Z" }
+generated: { by: "openwiki/0.5.0", at: "2026-10-28T08:19:50.216Z" }
+verified:
+  - by: openwiki/0.5.0
+    at: 2026-10-28T08:19:50.216Z
 ---
 
 ## Overview
@@ -282,6 +282,30 @@ make coverage
 
 Produces both XML and term-missing reports (lines not covered), useful for understanding untested code paths.
 
+### Performance Profiling and Benchmarks
+
+Some packages include profiling and benchmark tests to measure performance.
+
+**Profile Tests** (generates flame graphs):
+
+```bash
+make test_profile
+```
+
+Runs unit tests with profiling enabled, generating SVG flame graphs for performance analysis. Useful for identifying bottlenecks.
+
+**Benchmarks** (for packages with benchmark tests):
+
+```bash
+# Run benchmark tests
+make benchmark
+
+# Or run benchmarks with codspeed
+uv run pytest tests/benchmarks --codspeed
+```
+
+Benchmark tests typically live in `tests/benchmarks/` and are marked with `@pytest.mark.benchmark`. Regular test runs disable benchmarks with `--benchmark-disable` to keep CI fast.
+
 ### Integration Tests
 
 Integration tests live in `tests/integration_tests/` and require network access and API keys:
@@ -396,6 +420,8 @@ All packages support these standard make targets:
 | `make test` | Run all unit tests (parallel with xdist) |
 | `make test TEST_FILE=<path>` | Run tests in specific file/directory |
 | `make test_watch` | Run tests in watch mode (auto-rerun) |
+| `make test_profile` | Run unit tests with profiling (generates flame graphs) |
+| `make benchmark` | Run benchmark tests (package-specific) |
 | `make extended_tests` | Run only `@pytest.mark.extended` tests |
 | `make integration_tests` | Run integration tests (requires API keys) |
 | `make coverage` | Run tests and generate coverage report |

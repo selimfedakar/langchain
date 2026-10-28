@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:3fa2c68233c1dc499734bab580b31d3ec1bf5fa3d844a3f4a1655c8f53d5811f",
+  "pageVersion": "sha256:ec8016331967ded367382f7fb9b436f9f767731fd23f7f7a718f4b644ad45664",
   "claims": [
     {
       "id": "claim_106c015e2cd54bee94baf1f2020dab90",
@@ -42,7 +42,7 @@
         },
         {
           "resource": "repo://libs/core/langchain_core/language_models/chat_models.py#L645-L724",
-          "version": "repo-lines-v1:sha256:0b0eff12ff639a9cea0603128c0c6afa580a4bf1fa90737d9e1fd62d40af6653:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVlZDEzZTU5NTg3Y2QzODI2MGI4MDJjYjFhYzhjYWI5ZGVhZDVjZmRiMzgwZDZjMmQyYWI3NmE2NGM0NTE5ZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhZjg0ZGQ1YWY3MGExNDVkZGFiYjIwMDgxYTRjNjhkNjVhNjYwN2U2Y2NmYTZiZjRjNGI4YWQyZTE2ZjEyNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE4ZTI5YTJkZWZjOTBjNDQzMmM5MmIzNWYxN2NmODMzMjlmZDIxMTRiODZmN2M5ZDUyZTlhYjJjYWU3NTZiYjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIyNjU2NmNmY2I3MmZhM2Q1ZWIyMzQxYTIzMTQ5NWQ0MTE3Y2QwM2EzNDUyMzUxYzljYzA2Y2RhNjU3NGJmYmUifQ"
+          "version": "repo-lines-v1:sha256:14ceee07d7dc12784da02ba52f720fc220562c1a6345d469335ba67e0fc09333:eyJzZWxlY3RlZExpbmVDb3VudCI6ODIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVlZDEzZTU5NTg3Y2QzODI2MGI4MDJjYjFhYzhjYWI5ZGVhZDVjZmRiMzgwZDZjMmQyYWI3NmE2NGM0NTE5ZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhZjg0ZGQ1YWY3MGExNDVkZGFiYjIwMDgxYTRjNjhkNjVhNjYwN2U2Y2NmYTZiZjRjNGI4YWQyZTE2ZjEyNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE4ZTI5YTJkZWZjOTBjNDQzMmM5MmIzNWYxN2NmODMzMjlmZDIxMTRiODZmN2M5ZDUyZTlhYjJjYWU3NTZiYjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIyNjU2NmNmY2I3MmZhM2Q1ZWIyMzQxYTIzMTQ5NWQ0MTE3Y2QwM2EzNDUyMzUxYzljYzA2Y2RhNjU3NGJmYmUifQ"
         }
       ]
     },
@@ -106,11 +106,11 @@
     },
     {
       "id": "claim_41341b97490544b390f830ed83a5acf4",
-      "statement": "_generate_with_cache() handles cache lookup, rate limiting, and v2 event replay on cache hit; _generate() is called only on cache miss, ensuring consistent behavior and token cost zeroing for cached responses.",
+      "statement": "_generate_with_cache() handles cache lookup (with hit returning cached generations and replaying v2 events), rate limiting (applied after cache miss), and routing to either v2 streaming (_iter_v2_events), v1 streaming (_stream), or direct _generate() based on handler attachment and implementation.",
       "evidence": [
         {
-          "resource": "repo://libs/core/langchain_core/language_models/chat_models.py#L1892-L2007",
-          "version": "repo-lines-v1:sha256:a33b8ad24941e3bcd7753d179c410673d770e81978eb7cccb5a099ddc7ef2a96:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMzVhNGQ1NGU3ZGUxYTdmYjE3YjU4OTllNWFkMjMwMWMwZGEwODlhOGVkYmMxMWU4N2NlOGViNzFiMzcwMGZkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI3NmYyYzY4NTY4NjAxZTE0YTYzYjM4YWRiZTQyYWQ2M2QzMGVmNGUwMzI0ODFlMDc5Yzg0OWYwMTRiODU2ZGYyIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjMTQyMzMyMGQ3N2NlMTg4MDY2OTBlZmRiOGUwOWZjNmU3MjZiODVmYjRkN2U2YTU1MTBiNWIxZGI0MDgzYWNmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJkMTkzM2NiYTQyOTcwYTE1MTFkMGI2MTllNDI1NDc3MTIyMDhmNDBiMTRiODhhZGFiYmM5OTc5N2I3YjU1Yjk4In0"
+          "resource": "repo://libs/core/langchain_core/language_models/chat_models.py#L1935-L2092",
+          "version": "repo-lines-v1:sha256:2eb4c78ca2792b0a69801c226e259a0bbef903ec2b00a178e214b278817dba25:eyJzZWxlY3RlZExpbmVDb3VudCI6MTU4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMzVhNGQ1NGU3ZGUxYTdmYjE3YjU4OTllNWFkMjMwMWMwZGEwODlhOGVkYmMxMWU4N2NlOGViNzFiMzcwMGZkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI3NzJmOTY5NWM3NDY3Yzc0NzczYzljZTdmYzQyOWM1ZDBkMGU0ODdmM2M1MWQxNWQ2NjY4YTNkMjQwNzJiYjk1IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjMTQyMzMyMGQ3N2NlMTg4MDY2OTBlZmRiOGUwOWZjNmU3MjZiODVmYjRkN2U2YTU1MTBiNWIxZGI0MDgzYWNmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI4ZjQxNDllMTNmYjU2ZTdhMThmZmE2MGVjNDZiN2FkMjg4MmMxZTI5ODZhMDEyZmQ4NmIxNjlhYzAwYjFmZTM0In0"
         }
       ]
     },
@@ -221,6 +221,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.0",
-    "at": "2026-10-25T08:23:03.589Z"
+    "at": "2026-10-28T08:19:50.216Z"
   }
 }

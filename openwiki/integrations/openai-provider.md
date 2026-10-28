@@ -5,13 +5,15 @@ description: "Reference implementation of the partner pattern using OpenAI. Cove
 tags: ["chat-model", "openai", "tool-calling", "structured-output", "vision", "streaming", "partner-pattern"]
 verified:
   - by: openwiki/0.5.0
-    at: 2026-10-25T08:23:03.589Z
+    at: 2026-10-28T08:19:50.216Z
 sources:
+  - id: openwiki-source-f32b395707eda97cd743f4e5
+    resource: repo://libs/partners/openai/langchain_openai/chat_models/azure.py
   - id: openwiki-source-738512768ef81ae009b097ac
     resource: repo://libs/partners/openai/langchain_openai/chat_models/base.py
   - id: openwiki-source-b65307f1d05bd74532af2eee
     resource: repo://libs/partners/openai/langchain_openai/decisions/base.py
-generated: { by: "openwiki/0.5.0", at: "2026-10-25T08:23:03.589Z" }
+generated: { by: "openwiki/0.5.0", at: "2026-10-28T08:19:50.216Z" }
 ---
 
 # OpenAI Provider Implementation
@@ -22,7 +24,7 @@ The OpenAI integration (`langchain-openai`) provides production-ready implementa
 
 The OpenAI package contains three main components:
 
-1. **Chat Models** (`ChatOpenAI`, `BaseChatOpenAI`): The primary LLM interface implementing `BaseChatModel`.
+1. **Chat Models** (`ChatOpenAI`, `AzureChatOpenAI`, `BaseChatOpenAI`): The primary LLM interface implementing `BaseChatModel`.
 2. **Decisions API** (`OpenAIDecisions`): A specialized runnable for typed question-answering.
 3. **Embeddings** (`OpenAIEmbeddings`, `AzureOpenAIEmbeddings`): Text embedding implementations (not covered here).
 
@@ -123,24 +125,24 @@ The OpenAI integration resolves API keys through a multi-step process:
 from langchain_openai import ChatOpenAI
 
 # Option 1: Environment variable (OPENAI_API_KEY)
-model = ChatOpenAI(model="gpt-4.1-mini")
+model = ChatOpenAI(model="gpt-4o-mini")
 
 # Option 2: String parameter
-model = ChatOpenAI(model="gpt-4.1-mini", api_key="sk-...")
+model = ChatOpenAI(model="gpt-4o-mini", api_key="sk-...")
 
 # Option 3: Sync callable
 def get_api_key() -> str:
     # Custom logic to retrieve key
     return "sk-..."
 
-model = ChatOpenAI(model="gpt-4.1-mini", api_key=get_api_key)
+model = ChatOpenAI(model="gpt-4o-mini", api_key=get_api_key)
 
 # Option 4: Async callable
 async def get_api_key_async() -> str:
     result = await some_async_fetch()
     return result.key
 
-model = ChatOpenAI(model="gpt-4.1-mini", api_key=get_api_key_async)
+model = ChatOpenAI(model="gpt-4o-mini", api_key=get_api_key_async)
 ```
 
 ### Client Initialization
@@ -380,7 +382,7 @@ def get_weather(location: str, unit: str = "celsius") -> str:
     """Get the weather at a location."""
     return f"Sunny, 25°{unit}"
 
-model = ChatOpenAI(model="gpt-4.1-mini")
+model = ChatOpenAI(model="gpt-4o-mini")
 model_with_tools = model.bind_tools([get_weather])
 
 # Or from a Pydantic class directly
@@ -521,7 +523,7 @@ The `with_structured_output()` method returns a wrapped model that parses respon
 def with_structured_output(
     self,
     schema: dict | type | None = None,
-    method: Literal["function_calling", "json_mode", "json_schema"] = "json_schema",
+    method: Literal["function_calling", "json_mode", "json_schema"] = "function_calling",
     include_raw: bool = False,
     strict: bool | None = None,
     tools: list | None = None,
@@ -531,9 +533,9 @@ def with_structured_output(
 
 ### Method Comparison
 
-**1. JSON Schema (Default, Recommended)**
+**1. Function Calling (Default)**
 
-Uses OpenAI's Structured Output API for guaranteed schema conformance:
+Uses tool-calling API; schema is treated as a function to "call":
 
 ```python
 from pydantic import BaseModel, Field
@@ -544,8 +546,28 @@ class Joke(BaseModel):
     punchline: str = Field(description="Punchline")
     rating: int = Field(ge=1, le=10, description="Rating 1-10")
 
-model = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
-structured_model = model.with_structured_output(Joke, method="json_schema")
+model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+structured_model = model.with_structured_output(Joke, method="function_calling")
+
+joke = structured_model.invoke("Tell me a joke about cats")
+print(joke.setup)  # Returns Pydantic instance
+```
+
+**Characteristics:**
+- Works with most models (GPT-3.5+).
+- Less strict; schema is guidance, not a guarantee.
+- Uses `bind_tools()` internally, then parses the tool call.
+- Supports Pydantic V1 and V2.
+
+**2. JSON Schema**
+
+Uses OpenAI's Structured Output API for guaranteed schema conformance:
+
+```python
+structured_model = model.with_structured_output(
+    Joke,
+    method="json_schema"
+)
 
 joke = structured_model.invoke("Tell me a joke about cats")
 print(joke.setup)  # Returns Pydantic instance
@@ -557,25 +579,6 @@ print(joke.setup)  # Returns Pydantic instance
 - Supports both Pydantic V2 and JSON schemas.
 - Can include `strict=True` for additional validation.
 - Supports `tools` parameter to allow tool invocation alongside structured output.
-
-**2. Function Calling**
-
-Uses tool-calling API; schema is treated as a function to "call":
-
-```python
-structured_model = model.with_structured_output(
-    Joke,
-    method="function_calling"
-)
-
-joke = structured_model.invoke("Tell me a joke")
-```
-
-**Characteristics:**
-- Works with older models (GPT-3.5+).
-- Less strict; schema is guidance, not a guarantee.
-- Uses `bind_tools()` internally, then parses the tool call.
-- Supports Pydantic V1 and V2.
 
 **3. JSON Mode**
 
@@ -751,6 +754,114 @@ Configuration mirrors `ChatOpenAI`:
 - `organization`: OpenAI org ID
 - `timeout`, `max_retries`: Client behavior tuning
 
+## Azure OpenAI Integration
+
+`AzureChatOpenAI` extends `BaseChatOpenAI` with Azure-specific authentication, deployment handling, and response processing:
+
+### Azure Configuration
+
+```python
+from langchain_openai import AzureChatOpenAI
+
+model = AzureChatOpenAI(
+    azure_deployment="my-gpt-4-deployment",
+    api_version="2024-05-01-preview",
+    azure_endpoint="https://example.openai.azure.com/",
+    api_key="...",  # Or via AZURE_OPENAI_API_KEY
+    model="gpt-4",  # Model name (for token counting; doesn't affect completion)
+)
+```
+
+**Key parameters:**
+- `azure_endpoint`: Azure resource URL (e.g., `https://xxx.openai.azure.com/`)
+- `azure_deployment`: Name of the deployed model
+- `api_version`: Azure OpenAI REST API version (distinct from model version)
+- `api_key`: API key from Azure (reads `AZURE_OPENAI_API_KEY` by default)
+- `model`: The underlying OpenAI model name (for tracing and token counting; does not affect completion)
+- `model_version`: Optional version suffix for cost tracking
+
+### Azure Authentication Methods
+
+Azure OpenAI supports multiple authentication approaches:
+
+**1. API Key:**
+```python
+model = AzureChatOpenAI(
+    azure_deployment="my-deployment",
+    api_version="2024-05-01-preview",
+    api_key="your-api-key"
+)
+```
+
+**2. Azure Active Directory Token:**
+```python
+model = AzureChatOpenAI(
+    azure_deployment="my-deployment",
+    api_version="2024-05-01-preview",
+    azure_ad_token="your-aad-token"
+)
+```
+
+**3. Azure AD Token Provider (Sync):**
+```python
+def get_aad_token() -> str:
+    # Fetch token from Azure Identity library
+    ...
+
+model = AzureChatOpenAI(
+    azure_deployment="my-deployment",
+    api_version="2024-05-01-preview",
+    azure_ad_token_provider=get_aad_token
+)
+```
+
+**4. Azure AD Token Provider (Async):**
+```python
+async def get_aad_token_async() -> str:
+    # Fetch token asynchronously
+    ...
+
+model = AzureChatOpenAI(
+    azure_deployment="my-deployment",
+    api_version="2024-05-01-preview",
+    azure_ad_async_token_provider=get_aad_token_async
+)
+```
+
+**5. Workload Identity (Automatic):**
+When `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_FEDERATED_TOKEN_FILE` are set, Azure OpenAI automatically uses workload identity credentials (requires `azure-identity` package).
+
+### Azure Content Filtering
+
+Azure OpenAI includes content filtering that may reject requests or responses. Violations are reported in response metadata:
+
+```python
+response = model.invoke("...")
+response.response_metadata["content_filter_results"]
+# {
+#     "hate": {"filtered": False, "severity": "safe"},
+#     "self_harm": {"filtered": False, "severity": "safe"},
+#     "sexual": {"filtered": False, "severity": "safe"},
+#     "violence": {"filtered": False, "severity": "safe"},
+# }
+```
+
+If a response is filtered, a `ValueError` is raised with the message "Azure has not provided the response due to a content filter being triggered".
+
+### Azure with Responses API
+
+Azure supports the Responses API for advanced features. The integration automatically routes to `responses.create()` when Responses API features are used:
+
+```python
+model = AzureChatOpenAI(
+    azure_deployment="my-deployment",
+    api_version="2024-05-01-preview",
+    use_responses_api=True,
+)
+```
+
+When using Responses API, the deployment name is used as the model identifier in the request.
+
 ## Disabled Parameters
 
 Some models don't support certain parameters. Use `disabled_params` to prevent them:
@@ -857,7 +968,7 @@ model = ChatOpenAI(model="gpt-3.5-turbo", use_responses_api=True)
 ```python
 model = ChatOpenAI(
     # Model selection
-    model="gpt-4.1-mini",  # Required
+    model="gpt-4o-mini",  # Required
     
     # API authentication
     api_key="sk-...",  # Or callable; defaults to OPENAI_API_KEY
@@ -907,7 +1018,7 @@ response = model.invoke(messages, prompt_cache_key="tenant:123:support-v1")
 
 # Cache options
 model = ChatOpenAI(
-    model="gpt-5.6-sol",
+    model="gpt-4-turbo",
     prompt_cache_options={
         "mode": "explicit",  # or "implicit"
         "ttl": "30m"

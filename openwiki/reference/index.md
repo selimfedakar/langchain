@@ -3,7 +3,7 @@
 - [Agent Execution (Deprecated Reference)](agent-execution.md) - This page has been superseded. See the primary Agent Execution Flow and Loop Control documentation for current content.
 - [Agent Factory (Deprecated Reference)](agent-factory.md) - This page has been moved. For the authoritative documentation on the agent factory and create_agent function, see the Agent Execution Flow documentation.
 - [Callbacks (Deprecated Reference)](callbacks.md) - Deprecated reference page. See /openwiki/concepts/callbacks.md for current documentation on LangChain's callback system.
-- [Chat Models (Old Reference)](chat-models.md) - Deprecated reference page. Chat Models documentation has been consolidated into /openwiki/concepts/chat-models.md.
+- [Chat Models](chat-models.md) - Core abstractions and APIs for building conversational AI with LangChain, including BaseChatModel implementation contract, streaming architecture, tool calling, structured output, and integration patterns.
 - [CI Workflows (Deprecated)](ci-workflows.md) - Deprecated page: Actual CI workflows documentation has been moved to /openwiki/operations/ci-workflows.md.
 - [Composability (Deprecated Reference)](composability.md) - This page has been moved. For the authoritative documentation on agent composability, middleware composition, and subagent delegation patterns, see the Agent Composability documentation.
 - [Dev Commands (Old Page Reference)](dev-commands.md) - Deprecated: See /openwiki/operations/dev-commands.md instead.
